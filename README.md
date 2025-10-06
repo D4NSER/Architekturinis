@@ -15,10 +15,12 @@ Pasileidziama per IDE ir terminale sekanciomis komandomis kuriame prjekta:
 - mkdir backend
 
 # Run and Test Locally:
+### Viename terminale:
 - cd backend
 - node app.js
-- kitame terminale cd frontend
-- npm start
+### Kitame terminale
+ - cd frontend
+ - npm start
 
 # Githubo komandos:
 patikrinti, kokiame branche esu: 

@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/D4NSER/Architekturinis/issues"
   },
-  "homepage": "https://github.com/D4NSER/Architekturinis#readme"
+  "homepage": "https://github.com/D4NSER/Architekturinis#readme",
+  "dependencies": {
+    "react-router-dom": "^7.9.3"
+  }
 }

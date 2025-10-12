@@ -5,7 +5,10 @@ from pydantic import BaseModel, Field
 
 
 class PlanMealBase(BaseModel):
-    day_of_week: str = Field(regex="^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$", description="ISO weekday lower-case name")
+    day_of_week: str = Field(
+        pattern="^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$",
+        description="ISO weekday lower-case name",
+    )
     meal_type: str = Field(description="Meal category such as breakfast, lunch, dinner, snack")
     title: str
     description: Optional[str] = None
@@ -62,3 +65,9 @@ class NutritionPlanDetail(NutritionPlanSummary):
 
 class PlanSelectionRequest(BaseModel):
     plan_id: int
+
+
+class RecommendedPlanDetail(NutritionPlanDetail):
+    recommendation_reason: Optional[str] = Field(
+        default=None, description="Trumpas paaiškinimas, kodėl naudotojui parinktas šis planas."
+    )

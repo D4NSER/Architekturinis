@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
   createCustomPlan,
@@ -9,6 +10,7 @@ import {
 import type {
   NutritionPlanDetail,
   NutritionPlanSummary,
+  RecommendedPlanDetail,
 } from '../../types';
 import { useAuth } from '../auth/AuthContext';
 import { FormField } from '../../components/FormField';
@@ -42,11 +44,22 @@ const mealTypes = [
   'Vakarienė',
 ];
 
+const goalLabelMap: Record<string, string> = {
+  weight_loss: 'Svorio mažinimas',
+  muscle_gain: 'Raumenų auginimas',
+  balanced: 'Subalansuota mityba',
+  vegetarian: 'Vegetariškas gyvenimo būdas',
+  performance: 'Sportas ir didelis krūvis',
+};
+
+const renderGoalLabel = (goalType: string) => goalLabelMap[goalType] ?? goalType;
+
 export const PlansPage = () => {
   const { refreshProfile, user } = useAuth();
+  const navigate = useNavigate();
 
   const [plans, setPlans] = useState<NutritionPlanSummary[]>([]);
-  const [recommendedPlan, setRecommendedPlan] = useState<NutritionPlanDetail | null>(null);
+  const [recommendedPlan, setRecommendedPlan] = useState<RecommendedPlanDetail | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,12 +116,18 @@ export const PlansPage = () => {
 
   const handleSelectPlan = async (planId: number) => {
     try {
+      setError(null);
       await selectPlan(planId);
       await refreshProfile();
-      setStatusMessage('Planas priskirtas sėkmingai.');
+      const selected = plans.find((planItem) => planItem.id === planId);
+      setStatusMessage(selected ? `„${selected.name}“ planas priskirtas sėkmingai.` : 'Planas priskirtas sėkmingai.');
     } catch (err) {
       setError('Nepavyko priskirti plano.');
     }
+  };
+
+  const handleViewPlan = (planId: number) => {
+    navigate(`/plans/${planId}`);
   };
 
   const handleMealFieldChange = (field: keyof CustomMealForm) =>
@@ -117,8 +136,14 @@ export const PlansPage = () => {
     };
 
   const addMealToPlan = () => {
+    setError(null);
+    setStatusMessage(null);
     if (!customMeal.title) {
       setError('Įveskite patiekalo pavadinimą prieš pridedant.');
+      return;
+    }
+    if (customMeals.length >= 21) {
+      setError('Individualų savaitės planą sudaro iki 21 įrašo. Pašalinkite nereikalingus patiekalus, kad pridėtumėte naują.');
       return;
     }
     setCustomMeals((prev) => [...prev, customMeal]);
@@ -171,6 +196,11 @@ export const PlansPage = () => {
     }
   };
 
+  const removeCustomMeal = (index: number) => {
+    setStatusMessage(null);
+    setCustomMeals((prev) => prev.filter((_, mealIndex) => mealIndex !== index));
+  };
+
   if (isLoading) {
     return <div className="page-loading">Kraunama...</div>;
   }
@@ -188,16 +218,34 @@ export const PlansPage = () => {
 
       {recommendedPlan && (
         <section className="plan-card">
-          <h3>Rekomenduojamas planas: {recommendedPlan.name}</h3>
-          <p>{recommendedPlan.description}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
+            <div>
+              <h3>Rekomenduojamas planas: {recommendedPlan.name}</h3>
+              <p>{recommendedPlan.description}</p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => handleViewPlan(recommendedPlan.id)}
+            >
+              Peržiūrėti visą planą
+            </button>
+          </div>
+          {recommendedPlan.recommendation_reason && (
+            <div className="success-banner" style={{ marginTop: 12 }}>
+              {recommendedPlan.recommendation_reason}
+            </div>
+          )}
           {planMeta && (
-            <p>
-              {planMeta.calories} kcal · {planMeta.protein}g baltymų · {planMeta.carbs}g angliavandenių ·{' '}
-              {planMeta.fats}g riebalų
+            <p style={{ fontWeight: 600 }}>
+              {planMeta.calories} kcal · {planMeta.protein}g baltymų · {planMeta.carbs}g angliavandenių · {planMeta.fats}g riebalų
             </p>
           )}
+          <p style={{ marginTop: 4 }}>
+            Planą sudaro {recommendedPlan.meals.length} suplanuoti patiekalai per savaitę. Žemiau – keli pirmieji.
+          </p>
           <div className="meals-grid">
-            {recommendedPlan.meals.map((meal) => (
+            {recommendedPlan.meals.slice(0, 4).map((meal) => (
               <div key={meal.id} className="meal-row">
                 <div>
                   <strong>{meal.day_of_week.toUpperCase()} · {meal.meal_type}</strong>
@@ -216,26 +264,36 @@ export const PlansPage = () => {
           <p>Pasirinkite paruoštą mitybos planą ir matykite visą informaciją.</p>
           <div className="grid">
             {plans.map((plan) => (
-              <div key={plan.id} className="plan-card">
-                <h3>{plan.name}</h3>
-                <p>{plan.description}</p>
-                <p>
-                  Tikslas: <strong>{plan.goal_type}</strong>
-                </p>
-                {plan.calories && (
-                  <p>
-                    {plan.calories} kcal · {plan.protein_grams ?? 0}g baltymų · {plan.carbs_grams ?? 0}g{' '}
-                    angliavandenių · {plan.fats_grams ?? 0}g riebalų
-                  </p>
-                )}
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => handleSelectPlan(plan.id)}
-                  disabled={currentPlanId === plan.id}
-                >
-                  {currentPlanId === plan.id ? 'Pasirinkta' : 'Pasirinkti planą'}
-                </button>
+              <div key={plan.id} className="plan-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <h3>{plan.name}</h3>
+                  <p>{plan.description}</p>
+                  <div style={{ fontWeight: 600, marginTop: 8 }}>
+                    Tikslas: {renderGoalLabel(plan.goal_type)}
+                  </div>
+                  {plan.calories && (
+                    <p style={{ marginTop: 4 }}>
+                      {plan.calories} kcal · {plan.protein_grams ?? 0}g baltymų · {plan.carbs_grams ?? 0}g angliavandenių · {plan.fats_grams ?? 0}g riebalų
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => handleSelectPlan(plan.id)}
+                    disabled={currentPlanId === plan.id}
+                  >
+                    {currentPlanId === plan.id ? 'Pasirinkta' : 'Pasirinkti planą'}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => handleViewPlan(plan.id)}
+                  >
+                    Peržiūrėti detales
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -345,14 +403,21 @@ export const PlansPage = () => {
                 <h4>Savaitės meniu ({customMeals.length} įrašai)</h4>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }}>
                   {customMeals.map((meal, index) => (
-                    <li key={`${meal.day_of_week}-${meal.title}-${index}`} className="meal-row">
+                    <li key={`${meal.day_of_week}-${meal.title}-${index}`} className="meal-row" style={{ alignItems: 'center' }}>
                       <div>
                         <strong>
                           {daysOfWeek.find((day) => day.value === meal.day_of_week)?.label} · {meal.meal_type}
                         </strong>
                         <div>{meal.title}</div>
+                        {meal.calories && <small>{meal.calories} kcal</small>}
                       </div>
-                      {meal.calories && <span>{meal.calories} kcal</span>}
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => removeCustomMeal(index)}
+                      >
+                        Šalinti
+                      </button>
                     </li>
                   ))}
                 </ul>

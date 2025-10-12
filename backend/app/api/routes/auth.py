@@ -27,7 +27,12 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> User:
         hashed_password=get_password_hash(user_in.password),
         first_name=user_in.first_name,
         last_name=user_in.last_name,
-        goals=user_in.goals,
+        goal=user_in.goal,
+        height_cm=user_in.height_cm,
+        weight_kg=user_in.weight_kg,
+        activity_level=user_in.activity_level,
+        dietary_preferences=user_in.dietary_preferences,
+        allergies=user_in.allergies,
     )
     db.add(user)
     try:

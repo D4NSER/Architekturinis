@@ -1,4 +1,4 @@
-# BalancedBite Front-end
+# FitBite Front-end
 
 TypeScript + React aplikacija, teikianti autentifikuotą sąsają sveikos mitybos planams kurti ir tvarkyti. Šis dokumentas pakeičia standartinį CRA README.
 
@@ -13,8 +13,9 @@ Aplikacija pasiekiama `http://localhost:3000` ir bendrauja su FastAPI `http://lo
 
 ## Branduolio struktūra
 - `src/features/auth` – prisijungimo/registracijos logika, `AuthContext` saugo JWT ir naudotoją.
-- `src/features/profile` – profilio forma, tikslų redagavimas, nuotraukos įkėlimas.
-- `src/features/plans` – rekomenduojamo plano atvaizdavimas, paruoštų planų pasirinkimas, individualaus plano kūrimas savaitei.
+- `src/features/profile` – profilio forma su kūno duomenų atnaujinimu, KMI vertinimu ir nuotraukos įkėlimu.
+- `src/features/plans` – rekomenduojamo plano atvaizdavimas, planų detalės, paruoštų planų pasirinkimas, individualaus plano kūrimas savaitei.
+- `src/features/plans/PlanDetailPage.tsx` – išplėstos plano informacijos puslapis.
 - `src/layouts/AppLayout` – apsaugotas „dashboard“ su šonine navigacija.
 - `src/routes/ProtectedRoute` – užtikrina, kad neautentifikuoti vartotojai nukreipiami į `/login`.
 - `src/api/*` – atskiros Axios klientų funkcijos (`auth`, `users`, `plans`).
@@ -22,7 +23,7 @@ Aplikacija pasiekiama `http://localhost:3000` ir bendrauja su FastAPI `http://lo
 ## Aplinkos kintamieji
 | Kintamasis | Numatytoji reikšmė | Pastabos |
 |------------|--------------------|----------|
-| `REACT_APP_API_URL` | `http://localhost:8000/api` | Perjunkite diegiant į kitą hostą (pvz., `https://api.balancedbite.lt/api`). |
+| `REACT_APP_API_URL` | `http://localhost:8000/api` | Perjunkite diegiant į kitą hostą (pvz., `https://api.fitbite.lt/api`). |
 
 ## Naudingi skriptai
 | Komanda | Paskirtis |
@@ -34,7 +35,7 @@ Aplikacija pasiekiama `http://localhost:3000` ir bendrauja su FastAPI `http://lo
 | `npm run lint` | _nėra_; jei reikalinga, pridėkite ESLint konfigūraciją ateityje. |
 
 ## Autentifikacijos detalės
-1. Prisijungus UI gauna `access_token` (`LoginResponse`) ir išsaugo `localStorage` (`balancedbite_token`).
+1. Prisijungus UI gauna `access_token` (`LoginResponse`) ir išsaugo `localStorage` (`fitbite_token`).
 2. `AuthContext` nustato `Authorization` antraštę visoms Axios užklausoms.
 3. `ProtectedRoute` rodo „Kraunama...“ būseną kol vyksta profilio užklausos ir nukreipia į `/login` jei tokenas neteisingas.
 4. Atsijungus tokenas ir profilio duomenys išvalomi.
@@ -42,7 +43,7 @@ Aplikacija pasiekiama `http://localhost:3000` ir bendrauja su FastAPI `http://lo
 ## Formų UX
 - Visos formos naudoja bendrą `FormField` komponentą, užtikrinantį vienodą stilių.
 - Klaidos rodomos `error-banner` (raudona), sėkmės – `success-banner` (žalia).
-- Individualus planas reikalauja bent vieno patiekalo; klaidos pranešimas pateikiamas lietuviškai.
+- Individualus planas leidžia pridėti/salinti patiekalus iki 21 įrašo savaitei; klaidos rodomos lietuviškai.
 
 ## Build & deploy pastabos
 1. Konfigūruojant CI rekomenduojama naudoti:

@@ -28,11 +28,9 @@ class NutritionPlan(Base):
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    owner: Mapped["User" | None] = relationship("User", back_populates="custom_plans", foreign_keys=[owner_id])
-    meals: Mapped[list["PlanMeal"]] = relationship(
-        "PlanMeal", back_populates="plan", cascade="all, delete-orphan"
-    )
-    subscribers: Mapped[list["User"]] = relationship(
+    owner: Mapped[User | None] = relationship("User", back_populates="custom_plans", foreign_keys=[owner_id])
+    meals: Mapped[list["PlanMeal"]] = relationship("PlanMeal", back_populates="plan", cascade="all, delete-orphan")
+    subscribers: Mapped[list[User]] = relationship(
         "User", back_populates="current_plan", foreign_keys="User.current_plan_id"
     )
 

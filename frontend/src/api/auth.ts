@@ -6,7 +6,12 @@ export interface RegisterPayload {
   password: string;
   first_name?: string;
   last_name?: string;
-  goals?: string;
+  goal: string;
+  height_cm?: number;
+  weight_kg?: number;
+  activity_level?: string;
+  dietary_preferences?: string;
+  allergies?: string;
 }
 
 export const registerUser = async (payload: RegisterPayload): Promise<UserProfile> => {

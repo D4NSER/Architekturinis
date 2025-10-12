@@ -14,6 +14,7 @@ from app.schemas.plan import (
     NutritionPlanDetail,
     NutritionPlanSummary,
     PlanSelectionRequest,
+    RecommendedPlanDetail,
 )
 from app.services.plan_recommendation import (
     attach_macro_totals,
@@ -40,18 +41,20 @@ def list_plans(
     return plans
 
 
-@router.get("/recommended", response_model=NutritionPlanDetail)
+@router.get("/recommended", response_model=RecommendedPlanDetail)
 def recommended_plan(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> NutritionPlan:
-    plan = get_recommended_plan(db, current_user)
+    plan, reason = get_recommended_plan(db, current_user)
     if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No plans available")
 
     attach_macro_totals(plan)
     # ensure meals loaded for response
     plan.meals  # type: ignore[attr-defined]
+    if reason:
+        setattr(plan, "recommendation_reason", reason)
     return plan
 
 
@@ -85,4 +88,22 @@ def select_plan(
     db.refresh(current_user)
 
     attach_macro_totals(plan)
+    return plan
+
+
+@router.get("/{plan_id}", response_model=NutritionPlanDetail)
+def plan_detail(
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> NutritionPlan:
+    plan = db.query(NutritionPlan).filter(NutritionPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+
+    if plan.owner_id not in (None, current_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Plan is not available to this user")
+
+    attach_macro_totals(plan)
+    plan.meals  # type: ignore[attr-defined]
     return plan

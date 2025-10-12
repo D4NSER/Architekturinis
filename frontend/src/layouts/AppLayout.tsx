@@ -10,7 +10,7 @@ export const AppLayout = () => {
     <div className="app-shell">
       <aside className="sidebar">
         <div>
-          <h1>BalancedBite</h1>
+          <h1>FitBite</h1>
           {user && (
             <p>
               Sveiki, <strong>{user.first_name ?? user.email}</strong>

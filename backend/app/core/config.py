@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    project_name: str = "BalancedBite API"
+    project_name: str = "FitBite API"
     api_v1_prefix: str = "/api"
     backend_cors_origins: List[AnyHttpUrl] | List[str] = ["http://localhost:5173", "http://localhost:3000"]
 

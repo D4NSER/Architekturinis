@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { setAuthToken } from '../../api/client';
 import { loginUser, registerUser } from '../../api/auth';
+import type { RegisterPayload } from '../../api/auth';
 import { fetchCurrentUser } from '../../api/users';
 import type { LoginResponse, UserProfile } from '../../types';
 
@@ -13,20 +14,14 @@ interface AuthContextValue {
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (payload: {
-    email: string;
-    password: string;
-    first_name?: string;
-    last_name?: string;
-    goals?: string;
-  }) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const TOKEN_STORAGE_KEY = 'balancedbite_token';
+const TOKEN_STORAGE_KEY = 'fitbite_token';
 
 const storeToken = (token: string | null) => {
   if (token) {
@@ -91,13 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [handleAuthSuccess]);
 
-  const register = useCallback(async (payload: {
-    email: string;
-    password: string;
-    first_name?: string;
-    last_name?: string;
-    goals?: string;
-  }) => {
+  const register = useCallback(async (payload: RegisterPayload) => {
     setError(null);
     try {
       await registerUser(payload);

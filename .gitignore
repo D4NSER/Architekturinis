@@ -1,0 +1,43 @@
+# Python virtualenvs
+backend/.venv/
+venv/
+
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SQLite / local DB snapshots
+backend/app.db
+backend/app.db-journal
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Environment variables
+backend/.env
+frontend/.env
+
+# Node.js artifacts
+generation.log
+frontend/node_modules/
+frontend/npm-debug.log*
+frontend/package-lock.json
+.npm/
+
+# Build outputs / coverage
+frontend/build/
+frontend/coverage/
+
+# Media uploads
+backend/media/profile_pictures/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.idea/
+.vscode/

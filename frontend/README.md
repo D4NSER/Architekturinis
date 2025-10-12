@@ -1,70 +1,64 @@
-# Getting Started with Create React App
+# BalancedBite Front-end
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+TypeScript + React aplikacija, teikianti autentifikuotą sąsają sveikos mitybos planams kurti ir tvarkyti. Šis dokumentas pakeičia standartinį CRA README.
 
-## Available Scripts
+## Greitas startas
+```bash
+cd frontend
+cp .env.example .env               # REACT_APP_API_URL -> http://localhost:8000/api
+npm install
+npm start
+```
+Aplikacija pasiekiama `http://localhost:3000` ir bendrauja su FastAPI `http://localhost:8000/api`.
 
-In the project directory, you can run:
+## Branduolio struktūra
+- `src/features/auth` – prisijungimo/registracijos logika, `AuthContext` saugo JWT ir naudotoją.
+- `src/features/profile` – profilio forma, tikslų redagavimas, nuotraukos įkėlimas.
+- `src/features/plans` – rekomenduojamo plano atvaizdavimas, paruoštų planų pasirinkimas, individualaus plano kūrimas savaitei.
+- `src/layouts/AppLayout` – apsaugotas „dashboard“ su šonine navigacija.
+- `src/routes/ProtectedRoute` – užtikrina, kad neautentifikuoti vartotojai nukreipiami į `/login`.
+- `src/api/*` – atskiros Axios klientų funkcijos (`auth`, `users`, `plans`).
 
-### `npm start`
+## Aplinkos kintamieji
+| Kintamasis | Numatytoji reikšmė | Pastabos |
+|------------|--------------------|----------|
+| `REACT_APP_API_URL` | `http://localhost:8000/api` | Perjunkite diegiant į kitą hostą (pvz., `https://api.balancedbite.lt/api`). |
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Naudingi skriptai
+| Komanda | Paskirtis |
+|---------|-----------|
+| `npm start` | Dev serveris su HMR. |
+| `npm test` | React Testing Library (observuoti būsimiems testams). |
+| `npm run build` | Optimizuotas gamybinis build (`build/`). |
+| `npx tsc --noEmit` | Griežta tipų patikra (galima integruoti CI). |
+| `npm run lint` | _nėra_; jei reikalinga, pridėkite ESLint konfigūraciją ateityje. |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Autentifikacijos detalės
+1. Prisijungus UI gauna `access_token` (`LoginResponse`) ir išsaugo `localStorage` (`balancedbite_token`).
+2. `AuthContext` nustato `Authorization` antraštę visoms Axios užklausoms.
+3. `ProtectedRoute` rodo „Kraunama...“ būseną kol vyksta profilio užklausos ir nukreipia į `/login` jei tokenas neteisingas.
+4. Atsijungus tokenas ir profilio duomenys išvalomi.
 
-### `npm test`
+## Formų UX
+- Visos formos naudoja bendrą `FormField` komponentą, užtikrinantį vienodą stilių.
+- Klaidos rodomos `error-banner` (raudona), sėkmės – `success-banner` (žalia).
+- Individualus planas reikalauja bent vieno patiekalo; klaidos pranešimas pateikiamas lietuviškai.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Build & deploy pastabos
+1. Konfigūruojant CI rekomenduojama naudoti:
+   ```bash
+   npm ci
+   npm run build
+   ```
+2. Norint statinį buildą tiekti per `serve` ar kitą serverį: `npx serve -s build -l 3000`.
+3. Prieš deploy verta paleisti `npx tsc --noEmit` ir (kai atsiras testai) `npm test -- --watch=false`.
 
-### `npm run build`
+## Tolimesni darbai (front-end roadmap)
+1. Įdiegti formų validaciją su Zod (`zodResolver` + React Hook Form).
+2. Pridėti vienetinius testus pagrindiniams komponentams (`AuthContext`, `PlansPage`).
+3. Optimizuoti planų formą – pridėti drag&drop patiekalų tvarkymui.
+4. Integruoti „dark mode“ ir prieinamumo (ARIA) patobulinimus.
+5. Paruošti `Dockerfile` UI konteinerizacijai / „Cloud Run“ diegimui.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+Jei reikalinga išsamesnė informacija apie API ar bendrą architektūrą, žr. projekto šaknies `README.md`.

@@ -102,6 +102,8 @@ export const RegisterPage = () => {
             value={heightCm}
             onChange={(event) => setHeightCm(event.target.value)}
             placeholder="175"
+            min={100}
+            max={250}
           />
           <FormField
             id="weight_kg"
@@ -110,6 +112,8 @@ export const RegisterPage = () => {
             value={weightKg}
             onChange={(event) => setWeightKg(event.target.value)}
             placeholder="72"
+            min={35}
+            max={250}
           />
         </div>
         <FormField

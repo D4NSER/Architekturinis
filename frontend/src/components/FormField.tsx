@@ -12,6 +12,8 @@ interface FormFieldProps {
   autoComplete?: string;
   children?: ReactNode;
   options?: Array<{ value: string; label: string }>;
+  min?: number;
+  max?: number;
 }
 
 export const FormField: FC<FormFieldProps> = ({
@@ -26,6 +28,8 @@ export const FormField: FC<FormFieldProps> = ({
   autoComplete,
   children,
   options,
+  min,
+  max,
 }) => {
   return (
     <div className="form-field">
@@ -65,6 +69,8 @@ export const FormField: FC<FormFieldProps> = ({
           placeholder={placeholder}
           required={required}
           autoComplete={autoComplete}
+          min={min}
+          max={max}
         />
       )}
       {children}

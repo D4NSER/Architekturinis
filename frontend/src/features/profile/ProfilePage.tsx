@@ -4,6 +4,7 @@ import { FormField } from '../../components/FormField';
 import { updateProfile, uploadAvatar } from '../../api/users';
 import { useAuth } from '../auth/AuthContext';
 
+
 export const ProfilePage = () => {
   const { user, refreshProfile } = useAuth();
   const [firstName, setFirstName] = useState(user?.first_name ?? '');
@@ -161,6 +162,8 @@ export const ProfilePage = () => {
                 type="number"
                 value={heightCm}
                 onChange={(event) => setHeightCm(event.target.value)}
+                min={100}
+                max={250}
               />
               <FormField
                 id="weight_kg"
@@ -168,6 +171,8 @@ export const ProfilePage = () => {
                 type="number"
                 value={weightKg}
                 onChange={(event) => setWeightKg(event.target.value)}
+                min={35}
+                max={250}
               />
             </div>
             <FormField

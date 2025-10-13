@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.plan import NutritionPlanSummary
 
@@ -32,6 +32,19 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(min_length=8, description="User account password.")
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, value: str) -> str:
+        has_upper = any(char.isupper() for char in value)
+        has_lower = any(char.islower() for char in value)
+        has_digit = any(char.isdigit() for char in value)
+        has_special = any(not char.isalnum() for char in value)
+        if not (has_upper and has_lower and has_digit and has_special):
+            raise ValueError(
+                "Slaptažodis turi būti ne trumpesnis nei 8 simboliai ir turėti didžiąją, mažąją raidę, skaičių bei specialų simbolį."
+            )
+        return value
 
 
 class UserUpdate(BaseModel):

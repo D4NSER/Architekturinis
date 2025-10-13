@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import type { ReactElement } from 'react';
 
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import LoginPage from './features/auth/LoginPage';
@@ -10,7 +11,7 @@ import AppLayout from './layouts/AppLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import './App.css';
 
-const GuestOnlyRoute = ({ children }: { children: JSX.Element }) => {
+const GuestOnlyRoute = ({ children }: { children: ReactElement }) => {
   const { token } = useAuth();
   if (token) {
     return <Navigate to="/plans" replace />;

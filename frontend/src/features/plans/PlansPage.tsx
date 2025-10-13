@@ -7,11 +7,7 @@ import {
   fetchRecommendedPlan,
   selectPlan,
 } from '../../api/plans';
-import type {
-  NutritionPlanDetail,
-  NutritionPlanSummary,
-  RecommendedPlanDetail,
-} from '../../types';
+import type { NutritionPlanSummary, RecommendedPlanDetail } from '../../types';
 import { useAuth } from '../auth/AuthContext';
 import { FormField } from '../../components/FormField';
 

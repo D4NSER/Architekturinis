@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 
 import { FormField } from '../../components/FormField';
 import { updateProfile, uploadAvatar } from '../../api/users';
@@ -36,20 +36,35 @@ export const ProfilePage = () => {
     return <div className="page-loading">Naudotoja informacija pakeliui...</div>;
   }
 
-  const bmi = useMemo(() => {
-    if (!user.height_cm || !user.weight_kg) return null;
-    const heightMeters = user.height_cm / 100;
-    if (!heightMeters) return null;
-    return Number((user.weight_kg / (heightMeters * heightMeters)).toFixed(1));
-  }, [user.height_cm, user.weight_kg]);
+  const parsePositiveNumber = (value: string): number | null => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return null;
+    }
+    return parsed;
+  };
 
-  const bmiCategory = useMemo(() => {
-    if (!bmi) return null;
-    if (bmi < 18.5) return 'KMI rodo šiek tiek per mažą svorį.';
-    if (bmi < 25) return 'KMI normoje – palaikykite pasirinktą kryptį!';
-    if (bmi < 30) return 'KMI rodo perteklinį svorį – planai padės jį subalansuoti.';
-    return 'KMI rodo nutukimo lygį – rekomenduojame rinktis svorio mažinimo planus ir pasikonsultuoti su specialistu.';
-  }, [bmi]);
+  const numericHeight = parsePositiveNumber(heightCm);
+  const numericWeight = parsePositiveNumber(weightKg);
+
+  let bmi: number | null = null;
+  if (numericHeight && numericWeight) {
+    const heightMeters = numericHeight / 100;
+    bmi = Number((numericWeight / (heightMeters * heightMeters)).toFixed(1));
+  }
+
+  let bmiCategory: string | null = null;
+  if (bmi) {
+    if (bmi < 18.5) {
+      bmiCategory = 'KMI rodo šiek tiek per mažą svorį.';
+    } else if (bmi < 25) {
+      bmiCategory = 'KMI normoje – palaikykite pasirinktą kryptį!';
+    } else if (bmi < 30) {
+      bmiCategory = 'KMI rodo perteklinį svorį – planai padės jį subalansuoti.';
+    } else {
+      bmiCategory = 'KMI rodo nutukimo lygį – rekomenduojame rinktis svorio mažinimo planus ir pasikonsultuoti su specialistu.';
+    }
+  }
 
   const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -35,6 +35,34 @@ const goalLabelMap: Record<string, string> = {
   performance: 'Sportas ir didelis krūvis',
 };
 
+const goalFeatureMap: Record<string, string[]> = {
+  weight_loss: [
+    'Subalansuotas kalorijų deficitas kiekvienai dienai',
+    'Daug daržovių ir liesų baltymų sotumo jausmui',
+    'Lengvai sekama savaitinė struktūra su aiškiais patiekalais',
+  ],
+  muscle_gain: [
+    'Kaloringi patiekalai raumenų atsistatymui',
+    'Baltyminiai užkandžiai tarp pagrindinių valgymų',
+    'Pritaikyta intensyvioms treniruotėms ir masės auginimui',
+  ],
+  balanced: [
+    'Kasdieniai patiekalai su subalansuotais makroelementais',
+    'Lengvas kalorijų perteklius energijai visai dienai',
+    'Puikiai tinka užimtiems žmonėms, ieškantiems stabilios rutinos',
+  ],
+  vegetarian: [
+    'Pilnavertė augalinė mityba be kompromisų',
+    'Gausu baltymų iš augalinių šaltinių',
+    'Tinka vegetarianams ir tiems, kurie vengia mėsos',
+  ],
+  performance: [
+    'Padidinta angliavandenių dalis prieš ir po treniruočių',
+    'Funkciniai patiekalai aukštam fiziniam krūviui',
+    'Papildomi užkandžiai energijai per visą dieną palaikyti',
+  ],
+};
+
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 export const PlanDetailPage = () => {
@@ -69,6 +97,24 @@ export const PlanDetailPage = () => {
   }, [planId]);
 
   const groupedMeals = useMemo(() => (plan ? groupByDay(plan.meals) : {}), [plan]);
+  const totalMeals = plan?.meals.length ?? 0;
+  const uniqueDaysCount = plan ? new Set(plan.meals.map((meal) => meal.day_of_week)).size : 0;
+
+  const featureList = useMemo(() => {
+    if (!plan) return [];
+    if (plan.is_custom) {
+      return [
+        '100% pritaikytas jūsų pasirinktiems patiekalams',
+        'Galite atnaujinti bet kuriuo metu profilio puslapyje',
+        'Matote visą savaitės struktūrą ir makroelementus vienoje vietoje',
+      ];
+    }
+    return goalFeatureMap[plan.goal_type] ?? [
+      'Subalansuota savaitės struktūra',
+      'Aiškus makroelementų paskirstymas',
+      'Lengvai derinami patiekalai kasdienai',
+    ];
+  }, [plan]);
 
   const handleSelectPlan = async () => {
     if (!plan) return;
@@ -105,56 +151,105 @@ export const PlanDetailPage = () => {
   const isCurrent = user?.current_plan_id === plan.id;
 
   return (
-    <div className="page-card">
+    <div className="page-card plan-detail-page">
       <button type="button" className="secondary-button" onClick={() => navigate('/plans')}>
-        ← Atgal į planus
+        ← Atgal į planų biblioteką
       </button>
-      <h2 style={{ marginTop: 16 }}>{plan.name}</h2>
-      <p>{plan.description}</p>
-      <p style={{ fontWeight: 600 }}>
-        Tikslas: {goalLabelMap[plan.goal_type] ?? plan.goal_type}
-      </p>
-      {plan.calories && (
-        <p>
-          {plan.calories} kcal · {plan.protein_grams ?? 0}g baltymų · {plan.carbs_grams ?? 0}g angliavandenių · {plan.fats_grams ?? 0}g riebalų per dieną
-        </p>
-      )}
 
-      <div style={{ margin: '16px 0' }}>
-        {statusMessage && <div className="success-banner">{statusMessage}</div>}
-        {errorMessage && <div className="error-banner">{errorMessage}</div>}
-        <button
-          type="button"
-          className="primary-button"
-          onClick={handleSelectPlan}
-          disabled={isSelecting || isCurrent}
-        >
-          {isCurrent ? 'Šis planas jau pasirinktas' : isSelecting ? 'Priskiriama...' : 'Priskirti šį planą'}
-        </button>
-      </div>
+      <header className="plan-hero">
+        <div className="plan-hero__info">
+          <span className="plan-tag">{plan.is_custom ? 'Individualus planas' : 'FitBite planas'}</span>
+          <h1>{plan.name}</h1>
+          <p className="plan-lead">{plan.description}</p>
+          <div className="plan-meta">
+            <span className="plan-pill">{goalLabelMap[plan.goal_type] ?? plan.goal_type}</span>
+            <span className="plan-pill">{uniqueDaysCount} dienos</span>
+            <span className="plan-pill">{totalMeals} patiekalų</span>
+          </div>
+        </div>
+        <aside className="plan-hero__macros">
+          <h3>Makroelementų santrauka</h3>
+          <ul>
+            <li>
+              <strong>{plan.calories ?? 'n/a'}</strong>
+              <span>kcal per dieną</span>
+            </li>
+            <li>
+              <strong>{plan.protein_grams ?? 0} g</strong>
+              <span>baltymų</span>
+            </li>
+            <li>
+              <strong>{plan.carbs_grams ?? 0} g</strong>
+              <span>angliavandenių</span>
+            </li>
+            <li>
+              <strong>{plan.fats_grams ?? 0} g</strong>
+              <span>riebalų</span>
+            </li>
+          </ul>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={handleSelectPlan}
+            disabled={isSelecting || isCurrent}
+          >
+            {isCurrent ? 'Šis planas jau pasirinktas' : isSelecting ? 'Priskiriama...' : 'Priskirti šį planą'}
+          </button>
+          {plan.is_custom && (
+            <small style={{ display: 'block', marginTop: 12 }}>
+              Šis planas sukurtas pagal jūsų individualius patiekalus. Naują variantą galite sudaryti bet kada.
+            </small>
+          )}
+        </aside>
+      </header>
 
-      <section className="grid" style={{ gap: 16 }}>
+      {statusMessage && <div className="success-banner">{statusMessage}</div>}
+      {errorMessage && <div className="error-banner">{errorMessage}</div>}
+
+      <section className="plan-highlight">
+        <h2>Ką gausite su šiuo planu?</h2>
+        <ul>
+          {featureList.map((feature) => (
+            <li key={feature}>{feature}</li>
+          ))}
+        </ul>
+        <div className="plan-highlight__cta">
+          <div>
+            <h3>Klausimų ar norite korekcijų?</h3>
+            <p>Parašykite mums ir FitBite komanda padės pritaikyti planą dar tiksliau jūsų rutinai.</p>
+          </div>
+          <a className="secondary-button" href="mailto:info@fitbite.lt">
+            Susisiekti su FitBite
+          </a>
+        </div>
+      </section>
+
+      <section className="plan-schedule">
+        <h2>Savaitės meniu</h2>
         {orderedDays
           .filter((day) => groupedMeals[day])
           .map((day) => (
-            <div key={day} className="plan-card" style={{ padding: 16 }}>
-              <h3 style={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{dayLabelMap[day]}</h3>
-            <div className="meals-grid">
-              {groupedMeals[day]!.map((meal) => (
-                <div key={meal.id} className="meal-row">
-                  <div>
-                    <strong>{capitalize(meal.meal_type)}</strong>
-                    <div>{meal.title}</div>
-                    {meal.description && <small style={{ display: 'block', marginTop: 4 }}>{meal.description}</small>}
+            <div key={day} className="plan-card plan-day">
+              <header>
+                <h3>{dayLabelMap[day]}</h3>
+                <span>{groupedMeals[day]!.length} patiekalai</span>
+              </header>
+              <div className="meals-grid">
+                {groupedMeals[day]!.map((meal) => (
+                  <div key={meal.id} className="meal-row">
+                    <div>
+                      <strong>{capitalize(meal.meal_type)}</strong>
+                      <div>{meal.title}</div>
+                      {meal.description && <small style={{ display: 'block', marginTop: 4 }}>{meal.description}</small>}
+                    </div>
+                    {meal.calories && (
+                      <span style={{ fontWeight: 600 }}>
+                        {meal.calories} kcal
+                      </span>
+                    )}
                   </div>
-                  {meal.calories && (
-                    <span style={{ fontWeight: 600 }}>
-                      {meal.calories} kcal
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
             </div>
           ))}
       </section>

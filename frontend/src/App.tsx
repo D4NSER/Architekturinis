@@ -7,6 +7,7 @@ import RegisterPage from './features/auth/RegisterPage';
 import ProfilePage from './features/profile/ProfilePage';
 import PlansPage from './features/plans/PlansPage';
 import PlanDetailPage from './features/plans/PlanDetailPage';
+import IndividualPlanPage from './features/plans/IndividualPlanPage';
 import AppLayout from './layouts/AppLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import './App.css';
@@ -42,6 +43,7 @@ export const App = () => (
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/plans" replace />} />
           <Route path="/plans" element={<PlansPage />} />
+          <Route path="/plans/individual/:planId" element={<IndividualPlanPage />} />
           <Route path="/plans/:planId" element={<PlanDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>

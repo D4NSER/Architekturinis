@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.nutrition_plan import NutritionPlan
 from app.models.plan_meal import PlanMeal
 from app.models.user import User
-from app.schemas.plan import CustomPlanCreate, PlanMealCreate
+from app.schemas.plan import CustomPlanCreate
 
 
 def _calculate_bmi(user: User) -> float | None:
@@ -17,8 +17,14 @@ def _calculate_bmi(user: User) -> float | None:
     return None
 
 
-def get_recommended_plan(db: Session, user: User) -> tuple[NutritionPlan | None, str | None]:
-    query = db.query(NutritionPlan).filter(NutritionPlan.owner_id.is_(None))
+def get_recommended_plan(
+    db: Session, user: User
+) -> tuple[NutritionPlan | None, str | None]:
+    # Only recommend non-custom, public plans
+    query = db.query(NutritionPlan).filter(
+        NutritionPlan.owner_id.is_(None),
+        NutritionPlan.is_custom == False,  # noqa: E712
+    )
 
     preference = (user.dietary_preferences or "").lower()
     activity = (user.activity_level or "").lower()
@@ -28,24 +34,36 @@ def get_recommended_plan(db: Session, user: User) -> tuple[NutritionPlan | None,
     if "vegetar" in preference:
         plan = query.filter(NutritionPlan.goal_type == "vegetarian").first()
         if plan:
-            return plan, "Parinktas vegetariškas planas pagal jūsų pasirinktą mitybos tipą."
+            return (
+                plan,
+                "Parinktas vegetariškas planas pagal jūsų pasirinktą mitybos tipą.",
+            )
 
     # Activity-based suggestions
     if activity in {"active", "athlete"}:
         plan = query.filter(NutritionPlan.goal_type == "performance").first()
         if plan:
-            return plan, "Rekomenduojamas planas aktyviam gyvenimo būdui ir didesniam energijos poreikiui."
+            return (
+                plan,
+                "Rekomenduojamas planas aktyviam gyvenimo būdui ir didesniam energijos poreikiui.",
+            )
 
     # BMI-driven logic
     if bmi is not None:
         if bmi >= 27 or activity == "sedentary":
             plan = query.filter(NutritionPlan.goal_type == "weight_loss").first()
             if plan:
-                return plan, "Parinktas svorio mažinimo planas, kad padėtų pasiekti norimą kūno svorį."
+                return (
+                    plan,
+                    "Parinktas svorio mažinimo planas, kad padėtų pasiekti norimą kūno svorį.",
+                )
         elif bmi < 20:
             plan = query.filter(NutritionPlan.goal_type == "muscle_gain").first()
             if plan:
-                return plan, "Parinktas planas masės auginimui ir subalansuotiems makro elementams."
+                return (
+                    plan,
+                    "Parinktas planas masės auginimui ir subalansuotiems makro elementams.",
+                )
 
     # Primary goal fallback
     if user.goal:
@@ -58,15 +76,22 @@ def get_recommended_plan(db: Session, user: User) -> tuple[NutritionPlan | None,
                 "vegetarian": "Parinktas vegetariškas planas pagal jūsų pasirinktą tikslą.",
                 "performance": "Parinktas planas didesniam energijos poreikiui ir sportui.",
             }
-            return plan, goal_reason_map.get(user.goal, "Parinktas pagal jūsų pasirinktą tikslą.")
+            return plan, goal_reason_map.get(
+                user.goal, "Parinktas pagal jūsų pasirinktą tikslą."
+            )
 
     fallback = query.order_by(NutritionPlan.id.asc()).first()
     if fallback:
-        return fallback, "Pateiktas populiariausias FitBite planas, kad galėtumėte pradėti."
+        return (
+            fallback,
+            "Pateiktas populiariausias FitBite planas, kad galėtumėte pradėti.",
+        )
     return None, None
 
 
-def create_custom_plan(db: Session, user: User, payload: CustomPlanCreate) -> NutritionPlan:
+def create_custom_plan(
+    db: Session, user: User, payload: CustomPlanCreate
+) -> NutritionPlan:
     plan = NutritionPlan(
         name=payload.name,
         description=payload.description,

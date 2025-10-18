@@ -11,7 +11,7 @@ def seed_initial_plans(db: Session) -> None:
     plans_data = [
         {
             "name": "FitBite Slim planas",
-            "description": "7 dienų svorio mažinimo planas paremta 7pack.lt SLIM filosofija – daug daržovių, lengvi baltymų šaltiniai, subalansuotos porcijos ir aiškus grafikas visai savaitei.",
+            "description": "7 dienų svorio mažinimo planas paremta SLIM filosofija – daug daržovių, lengvi baltymų šaltiniai, subalansuotos porcijos ir aiškus grafikas visai savaitei.",
             "goal_type": "weight_loss",
             "calories": 1650,
             "protein_grams": 120,
@@ -82,7 +82,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Maxi planas",
-            "description": "Didelio kaloringumo planas paremtas 7pack.lt MAXI pasiūla – orientuotas į raumenų auginimą ir energiją intensyvioms treniruotėms.",
+            "description": "Didelio kaloringumo planas paremtas MAXI pasiūla – orientuotas į raumenų auginimą ir energiją intensyvioms treniruotėms.",
             "goal_type": "muscle_gain",
             "calories": 2850,
             "protein_grams": 200,
@@ -194,7 +194,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Vegetarų planas",
-            "description": "7pack.lt vegetariškų planų įkvėptas meniu – subalansuotas baltymų ir skaidulų balansas be mėsos produktų.",
+            "description": "Vegetariškų planų įkvėptas meniu – subalansuotas baltymų ir skaidulų balansas be mėsos produktų.",
             "goal_type": "vegetarian",
             "calories": 1900,
             "protein_grams": 110,
@@ -245,7 +245,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Office planas",
-            "description": "Planą įkvėpė 7pack.lt Office pasiūlymai – greitai paimami patiekalai biurui, aiškiai pažymėtos porcijos ir sustyguotas grafikas.",
+            "description": "Planą įkvėpė Office pasiūlymai – greitai paimami patiekalai biurui, aiškiai pažymėtos porcijos ir sustyguotas grafikas.",
             "goal_type": "balanced",
             "calories": 1850,
             "protein_grams": 130,
@@ -296,7 +296,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Boost planas",
-            "description": "Energingas planas artimas 7pack.lt BOOST pasiūlymui – sukurtas didesniam krūviui, HIIT treniruotėms ir ilgoms darbo dienoms.",
+            "description": "Energingas planas artimas BOOST pasiūlymui – sukurtas didesniam krūviui, HIIT treniruotėms ir ilgoms darbo dienoms.",
             "goal_type": "performance",
             "calories": 2400,
             "protein_grams": 165,

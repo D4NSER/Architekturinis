@@ -43,11 +43,12 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="page-card" style={{ maxWidth: 520 }}>
-      <h2>Sukurti paskyrą</h2>
-      <p>Užpildykite asmeninę informaciją, kad galėtume pritaikyti mitybos planus jūsų tikslams.</p>
-      {error && <div className="error-banner">{error}</div>}
-      <form onSubmit={handleSubmit} className="grid" style={{ gap: 16 }}>
+    <div className="auth-page-container">
+      <div className="page-card" style={{ maxWidth: 520 }}>
+        <h2>Sukurti paskyrą</h2>
+        <p>Užpildykite asmeninę informaciją, kad galėtume pritaikyti mitybos planus jūsų tikslams.</p>
+        {error && <div className="error-banner">{error}</div>}
+        <form onSubmit={handleSubmit} className="grid" style={{ gap: 16 }}>
         <FormField
           id="email"
           label="El. paštas"
@@ -156,6 +157,7 @@ export const RegisterPage = () => {
           Prisijunkite
         </Link>
       </p>
+    </div>
     </div>
   );
 };

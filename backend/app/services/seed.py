@@ -11,7 +11,7 @@ def seed_initial_plans(db: Session) -> None:
     plans_data = [
         {
             "name": "FitBite Slim planas",
-            "description": "7 dienų svorio mažinimo planas paremta SLIM filosofija – daug daržovių, lengvi baltymų šaltiniai, subalansuotos porcijos ir aiškus grafikas visai savaitei.",
+            "description": "7 dienų svorio mažinimo planas – daug daržovių, lengvi baltymų šaltiniai, subalansuotos porcijos ir aiškus grafikas visai savaitei.",
             "goal_type": "weight_loss",
             "calories": 1650,
             "protein_grams": 120,
@@ -82,7 +82,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Maxi planas",
-            "description": "Didelio kaloringumo planas paremtas MAXI pasiūla – orientuotas į raumenų auginimą ir energiją intensyvioms treniruotėms.",
+            "description": "Didelio kaloringumo planas orientuotas į raumenų auginimą ir energiją intensyvioms treniruotėms.",
             "goal_type": "muscle_gain",
             "calories": 2850,
             "protein_grams": 200,
@@ -143,7 +143,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Smart planas",
-            "description": "Balanced ir SMART planų interpretacija – tiems, kurie nori subalansuotos kasdienės mitybos su lengvu kalorijų deficitu.",
+            "description": "Subalansuotas kasdienės mitybos planas su lengvu kalorijų deficitu – idealus norintiems palaikyti sveiką mitybą.",
             "goal_type": "balanced",
             "calories": 2000,
             "protein_grams": 150,
@@ -194,7 +194,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Vegetarų planas",
-            "description": "Vegetariškų planų įkvėptas meniu – subalansuotas baltymų ir skaidulų balansas be mėsos produktų.",
+            "description": "Subalansuotas vegetariškas meniu – optimalus baltymų ir skaidulų balansas be mėsos produktų.",
             "goal_type": "vegetarian",
             "calories": 1900,
             "protein_grams": 110,
@@ -245,7 +245,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Office planas",
-            "description": "Planą įkvėpė Office pasiūlymai – greitai paimami patiekalai biurui, aiškiai pažymėtos porcijos ir sustyguotas grafikas.",
+            "description": "Greitai paimami patiekalai biurui – aiškiai pažymėtos porcijos ir sustyguotas grafikas užimtiems profesionalams.",
             "goal_type": "balanced",
             "calories": 1850,
             "protein_grams": 130,
@@ -296,7 +296,7 @@ def seed_initial_plans(db: Session) -> None:
         },
         {
             "name": "FitBite Boost planas",
-            "description": "Energingas planas artimas BOOST pasiūlymui – sukurtas didesniam krūviui, HIIT treniruotėms ir ilgoms darbo dienoms.",
+            "description": "Energingas planas sukurtas didesniam krūviui, HIIT treniruotėms ir ilgoms darbo dienoms – maksimali energija visai dienai.",
             "goal_type": "performance",
             "calories": 2400,
             "protein_grams": 165,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 import uuid
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -19,8 +19,13 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(100))
     last_name: Mapped[str | None] = mapped_column(String(100))
-    goals: Mapped[str | None] = mapped_column(String(255))
+    goal: Mapped[str] = mapped_column(String(50), default="balanced")
     avatar_url: Mapped[str | None] = mapped_column(String(255))
+    height_cm: Mapped[float | None] = mapped_column(Float)
+    weight_kg: Mapped[float | None] = mapped_column(Float)
+    activity_level: Mapped[str | None] = mapped_column(String(50))
+    dietary_preferences: Mapped[str | None] = mapped_column(String(255))
+    allergies: Mapped[str | None] = mapped_column(String(255))
 
     current_plan_id: Mapped[int | None] = mapped_column(ForeignKey("nutritionplan.id"))
 
@@ -29,11 +34,14 @@ class User(Base):
         DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    current_plan: Mapped["NutritionPlan" | None] = relationship(
+    current_plan: Mapped[NutritionPlan | None] = relationship(
         "NutritionPlan", foreign_keys=[current_plan_id], back_populates="subscribers"
     )
-    custom_plans: Mapped[list["NutritionPlan"]] = relationship(
-        "NutritionPlan", back_populates="owner", cascade="all, delete-orphan"
+    custom_plans: Mapped[list[NutritionPlan]] = relationship(
+        "NutritionPlan",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+        foreign_keys="NutritionPlan.owner_id",
     )
 
 

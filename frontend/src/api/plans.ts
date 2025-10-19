@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { NutritionPlanDetail, NutritionPlanSummary } from '../types';
+import type { NutritionPlanDetail, NutritionPlanSummary, RecommendedPlanDetail } from '../types';
 
 export interface CustomPlanMealInput {
   day_of_week: string;
@@ -23,8 +23,8 @@ export const fetchPlans = async (): Promise<NutritionPlanSummary[]> => {
   return data;
 };
 
-export const fetchRecommendedPlan = async (): Promise<NutritionPlanDetail> => {
-  const { data } = await apiClient.get<NutritionPlanDetail>('/plans/recommended');
+export const fetchRecommendedPlan = async (): Promise<RecommendedPlanDetail> => {
+  const { data } = await apiClient.get<RecommendedPlanDetail>('/plans/recommended');
   return data;
 };
 
@@ -35,5 +35,10 @@ export const createCustomPlan = async (payload: CustomPlanPayload): Promise<Nutr
 
 export const selectPlan = async (planId: number): Promise<NutritionPlanSummary> => {
   const { data } = await apiClient.post<NutritionPlanSummary>('/plans/select', { plan_id: planId });
+  return data;
+};
+
+export const fetchPlanDetail = async (planId: number): Promise<NutritionPlanDetail> => {
+  const { data } = await apiClient.get<NutritionPlanDetail>(`/plans/${planId}`);
   return data;
 };

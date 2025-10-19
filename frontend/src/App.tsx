@@ -1,15 +1,18 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import type { ReactElement } from 'react';
 
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 import LoginPage from './features/auth/LoginPage';
 import RegisterPage from './features/auth/RegisterPage';
 import ProfilePage from './features/profile/ProfilePage';
 import PlansPage from './features/plans/PlansPage';
+import PlanDetailPage from './features/plans/PlanDetailPage';
+import IndividualPlanPage from './features/plans/IndividualPlanPage';
 import AppLayout from './layouts/AppLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import './App.css';
 
-const GuestOnlyRoute = ({ children }: { children: JSX.Element }) => {
+const GuestOnlyRoute = ({ children }: { children: ReactElement }) => {
   const { token } = useAuth();
   if (token) {
     return <Navigate to="/plans" replace />;
@@ -40,6 +43,8 @@ export const App = () => (
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/plans" replace />} />
           <Route path="/plans" element={<PlansPage />} />
+          <Route path="/plans/individual/:planId" element={<IndividualPlanPage />} />
+          <Route path="/plans/:planId" element={<PlanDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>

@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -41,6 +41,7 @@ def update_me(
 
 @router.post("/me/avatar", response_model=UserRead)
 def upload_avatar(
+    request: Request,
     file: Annotated[UploadFile, File(..., description="Profile image (PNG or JPEG)")],
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -57,7 +58,8 @@ def upload_avatar(
         shutil.copyfileobj(file.file, buffer)
 
     relative_path = f"/media/profile_pictures/{filename}"
-    current_user.avatar_url = relative_path
+    base_url = str(request.base_url).rstrip("/")
+    current_user.avatar_url = f"{base_url}{relative_path}"
 
     db.add(current_user)
     db.commit()

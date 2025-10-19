@@ -5,12 +5,15 @@ interface FormFieldProps {
   label: string;
   type?: string;
   value: string;
-  onChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement>;
+  onChange: ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
   placeholder?: string;
-  as?: 'input' | 'textarea';
+  as?: 'input' | 'textarea' | 'select';
   required?: boolean;
   autoComplete?: string;
   children?: ReactNode;
+  options?: Array<{ value: string; label: string }>;
+  min?: number;
+  max?: number;
 }
 
 export const FormField: FC<FormFieldProps> = ({
@@ -24,6 +27,9 @@ export const FormField: FC<FormFieldProps> = ({
   required,
   autoComplete,
   children,
+  options,
+  min,
+  max,
 }) => {
   return (
     <div className="form-field">
@@ -39,6 +45,20 @@ export const FormField: FC<FormFieldProps> = ({
           autoComplete={autoComplete}
           rows={3}
         />
+      ) : as === 'select' ? (
+        <select
+          id={id}
+          name={id}
+          value={value}
+          onChange={onChange as ChangeEventHandler<HTMLSelectElement>}
+          required={required}
+        >
+          {(options ?? []).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       ) : (
         <input
           id={id}
@@ -49,6 +69,8 @@ export const FormField: FC<FormFieldProps> = ({
           placeholder={placeholder}
           required={required}
           autoComplete={autoComplete}
+          min={min}
+          max={max}
         />
       )}
       {children}

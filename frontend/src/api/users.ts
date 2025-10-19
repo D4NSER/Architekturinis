@@ -4,7 +4,12 @@ import type { UserProfile } from '../types';
 export interface UpdateProfilePayload {
   first_name?: string;
   last_name?: string;
-  goals?: string;
+  goal?: string;
+  height_cm?: number;
+  weight_kg?: number;
+  activity_level?: string;
+  dietary_preferences?: string;
+  allergies?: string;
 }
 
 export const fetchCurrentUser = async (): Promise<UserProfile> => {

@@ -9,7 +9,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -20,8 +20,8 @@
       "@/*": ["*"],
       "@features/*": ["features/*"],
       "@components/*": ["components/*"]
-    }
+    },
+    "ignoreDeprecations": "6.0"
   },
-  "include": ["src"],
-  "references": [{ "path": "tsconfig.node.json" }]
+  "include": ["src"]
 }

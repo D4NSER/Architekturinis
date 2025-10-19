@@ -3,7 +3,12 @@ export interface UserProfile {
   email: string;
   first_name?: string;
   last_name?: string;
-  goals?: string;
+  goal: string;
+  height_cm?: number;
+  weight_kg?: number;
+  activity_level?: string;
+  dietary_preferences?: string;
+  allergies?: string;
   avatar_url?: string;
   current_plan_id?: number;
   created_at: string;
@@ -45,6 +50,10 @@ export interface NutritionPlanDetail extends NutritionPlanSummary {
   created_at: string;
   updated_at: string;
   meals: PlanMeal[];
+}
+
+export interface RecommendedPlanDetail extends NutritionPlanDetail {
+  recommendation_reason?: string | null;
 }
 
 export interface ApiError {

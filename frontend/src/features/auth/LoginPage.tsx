@@ -27,39 +27,41 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="page-card" style={{ maxWidth: 480 }}>
-      <h2>Prisijungimas</h2>
-      <p>Įveskite savo prisijungimo duomenis norėdami matyti asmeninę informaciją.</p>
-      {error && <div className="error-banner">{error}</div>}
-      <form onSubmit={handleSubmit} className="grid" style={{ gap: 16 }}>
-        <FormField
-          id="email"
-          label="El. paštas"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          autoComplete="email"
-          required
-        />
-        <FormField
-          id="password"
-          label="Slaptažodis"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          autoComplete="current-password"
-          required
-        />
-        <button type="submit" className="primary-button" disabled={isSubmitting}>
-          {isSubmitting ? 'Jungiama...' : 'Prisijungti'}
-        </button>
-      </form>
-      <p>
-        Neturite paskyros?{' '}
-        <Link to="/register" className="inline-link">
-          Sukurti paskyrą
-        </Link>
-      </p>
+    <div className="auth-page-container">
+      <div className="page-card" style={{ maxWidth: 480 }}>
+        <h2>Prisijungimas</h2>
+        <p>Įveskite savo prisijungimo duomenis norėdami matyti asmeninę informaciją.</p>
+        {error && <div className="error-banner">{error}</div>}
+        <form onSubmit={handleSubmit} className="grid" style={{ gap: 16 }}>
+          <FormField
+            id="email"
+            label="El. paštas"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
+          <FormField
+            id="password"
+            label="Slaptažodis"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+          <button type="submit" className="primary-button" disabled={isSubmitting}>
+            {isSubmitting ? 'Jungiama...' : 'Prisijungti'}
+          </button>
+        </form>
+        <p>
+          Neturite paskyros?{' '}
+          <Link to="/register" className="inline-link">
+            Sukurti paskyrą
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };

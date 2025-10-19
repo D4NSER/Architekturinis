@@ -10,17 +10,16 @@ export const AppLayout = () => {
     <div className="app-shell">
       <header className="top-navbar">
         <div className="navbar-container">
-          <div className="navbar-brand">
-            <span className="brand-icon">🥗</span>
+          <NavLink to="/plans" className="navbar-brand">
             <h1 className="brand-name">FitBite</h1>
-          </div>
+          </NavLink>
           
           <nav className="navbar-nav">
             <NavLink to="/plans" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-              📋 Mitybos planai
+              Mitybos planai
             </NavLink>
             <NavLink to="/profile" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-              👤 Mano profilis
+              Mano profilis
             </NavLink>
           </nav>
 
@@ -32,7 +31,7 @@ export const AppLayout = () => {
               </div>
             )}
             <button type="button" onClick={logout} className="logout-button">
-              🚪 Atsijungti
+              Atsijungti
             </button>
           </div>
         </div>

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.nutrition_plan import NutritionPlan
 from app.models.plan_meal import PlanMeal
@@ -21,9 +21,16 @@ def get_recommended_plan(
     db: Session, user: User
 ) -> tuple[NutritionPlan | None, str | None]:
     # Only recommend non-custom, public plans
-    query = db.query(NutritionPlan).filter(
-        NutritionPlan.owner_id.is_(None),
-        NutritionPlan.is_custom == False,  # noqa: E712
+    query = (
+        db.query(NutritionPlan)
+        .options(
+            selectinload(NutritionPlan.meals),
+            selectinload(NutritionPlan.pricing_entries),
+        )
+        .filter(
+            NutritionPlan.owner_id.is_(None),
+            NutritionPlan.is_custom == False,  # noqa: E712
+        )
     )
 
     preference = (user.dietary_preferences or "").lower()

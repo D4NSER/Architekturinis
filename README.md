@@ -52,6 +52,7 @@ Jei priklausomybės jau suinstaliuotos (t. y. `backend/.venv` egzistuoja ir `fro
 | `BACKEND_CORS_ORIGINS` | Leidžiamos UI kilmės | kableliais atskirtas sąrašas |
 | `DATABASE_URL` | SQLAlchemy DSN | `sqlite:///./app.db` arba `postgresql+psycopg://user:pass@host:5432/db` |
 | `JWT_SECRET_KEY` / `JWT_ALGORITHM` / `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT nustatymai | HS256 ir 60 min numatytieji |
+| `GENERIC_DISCOUNT_CODES` | Papildomi nuolaidų kodai | JSON sąrašas su kodais ir procentais (pvz., `[{"code":"TEST","percent":0.15},{"code":"SPRING","percent":0.2}]`); jei procentas nenurodytas, taikoma 0.15 |
 
 ### Kas vyksta paleidimo metu
 1. Sukuriamos lentelės pagal SQLAlchemy modelius (`Base.metadata.create_all`).
@@ -114,6 +115,7 @@ Failas pateks į `backend/media/profile_pictures/` ir bus pasiekiamas per `http:
 - `GET /api/plans/{id}` – detalus plano vaizdas su savaitės patiekalais.
 - `POST /api/plans/custom` – individualaus savaitės plano sudarymas (iki 21 įrašo).
 - `POST /api/plans/select` – plano priskyrimas naudotojui.
+- `GET /api/discounts/codes` – grąžina visus `.env` faile sukonfigūruotus (ne gimtadienio) nuolaidų kodus.
 
 ## Front-end gilinimasis
 ### Pagrindiniai skriptai

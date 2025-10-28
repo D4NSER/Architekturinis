@@ -33,7 +33,26 @@ class NutritionPlan(Base):
     subscribers: Mapped[list[User]] = relationship(
         "User", back_populates="current_plan", foreign_keys="User.current_plan_id"
     )
+    pricing_entries: Mapped[list["PlanPeriodPricing"]] = relationship(
+        "PlanPeriodPricing",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        order_by="PlanPeriodPricing.period_days",
+    )
+    purchases: Mapped[list["PlanPurchase"]] = relationship(
+        "PlanPurchase",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+    )
+
+    @property
+    def pricing_options(self) -> list["PlanPeriodPricing"]:
+        """Return only active pricing options sorted by period length."""
+        entries = self.pricing_entries or []
+        return [entry for entry in entries if entry.is_active]
 
 
 from app.models.plan_meal import PlanMeal  # noqa: E402
+from app.models.plan_period_pricing import PlanPeriodPricing  # noqa: E402
+from app.models.plan_purchase import PlanPurchase  # noqa: E402
 from app.models.user import User  # noqa: E402

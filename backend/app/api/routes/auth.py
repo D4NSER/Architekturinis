@@ -20,7 +20,10 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> User:
     email = user_in.email.lower()
     existing = db.query(User).filter(User.email == email).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is already registered")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already registered",
+        )
 
     user = User(
         email=email,
@@ -33,13 +36,16 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> User:
         activity_level=user_in.activity_level,
         dietary_preferences=user_in.dietary_preferences,
         allergies=user_in.allergies,
+        birth_date=user_in.birth_date,
     )
     db.add(user)
     try:
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unable to create user") from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unable to create user"
+        ) from exc
 
     db.refresh(user)
     return user
@@ -49,7 +55,10 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> User:
 def login(login_in: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
     user = authenticate_user(db, login_in.email.lower(), login_in.password)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
 
     expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(user.id, expires_delta)

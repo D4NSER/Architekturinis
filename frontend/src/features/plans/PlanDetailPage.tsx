@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { fetchPlanDetail, selectPlan } from '../../api/plans';
-import type { NutritionPlanDetail } from '../../types';
+import type { NutritionPlanDetail, PlanPricingOption } from '../../types';
 import { useAuth } from '../auth/AuthContext';
 
 const orderedDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -64,6 +64,44 @@ const goalFeatureMap: Record<string, string[]> = {
 };
 
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+const formatCurrency = (value: number, currency = 'EUR') =>
+  new Intl.NumberFormat('lt-LT', { style: 'currency', currency }).format(value);
+const formatPeriodLabel = (days: number) => {
+  if (days === 1) return '1 diena';
+  if (days >= 10) return `${days} dienų`;
+  return `${days} dienos`;
+};
+
+const FIRST_PURCHASE_DISCOUNT = 0.15;
+
+const periodCardStyle = {
+  marginTop: 16,
+  padding: '16px 18px',
+  borderRadius: 16,
+  border: '1px solid rgba(99, 102, 241, 0.25)',
+  background: 'rgba(129, 140, 248, 0.08)',
+  display: 'flex',
+  flexDirection: 'column' as const,
+  gap: 12,
+};
+
+const priceEmphasisStyle = {
+  display: 'flex',
+  flexDirection: 'column' as const,
+  gap: 4,
+  fontWeight: 600,
+  color: '#312e81',
+};
+
+const priceAmountStyle = {
+  fontSize: '1.5rem',
+  lineHeight: 1.2,
+};
+
+const pricePerDayStyle = {
+  fontSize: '0.85rem',
+  color: '#4338ca',
+};
 
 export const PlanDetailPage = () => {
   const { planId } = useParams<{ planId: string }>();
@@ -74,6 +112,7 @@ export const PlanDetailPage = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [isSelecting, setSelecting] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -116,6 +155,54 @@ export const PlanDetailPage = () => {
     ];
   }, [plan]);
 
+  const sortedPricingOptions = useMemo<PlanPricingOption[]>(() => {
+    if (!plan?.pricing_options?.length) return [];
+    return plan.pricing_options.slice().sort((a, b) => a.period_days - b.period_days);
+  }, [plan]);
+
+  useEffect(() => {
+    if (sortedPricingOptions.length > 0) {
+      setSelectedPeriod(sortedPricingOptions[0].period_days);
+    } else {
+      setSelectedPeriod(null);
+    }
+  }, [sortedPricingOptions]);
+
+  const selectedPricingOption = useMemo(() => {
+    if (!selectedPeriod) return null;
+    return sortedPricingOptions.find((option) => option.period_days === selectedPeriod) ?? null;
+  }, [selectedPeriod, sortedPricingOptions]);
+
+  const eligibleFirstPurchase = Boolean(user?.eligible_first_purchase_discount);
+
+  const pricePerDay = useMemo(() => {
+    if (!selectedPricingOption) return null;
+    const discountPercent = eligibleFirstPurchase ? FIRST_PURCHASE_DISCOUNT : 0;
+    const final = selectedPricingOption.final_price * (1 - discountPercent);
+    return final / selectedPricingOption.period_days;
+  }, [selectedPricingOption, eligibleFirstPurchase]);
+
+  const priceBreakdown = useMemo(() => {
+    if (!selectedPricingOption) return null;
+    const currency = selectedPricingOption.currency ?? 'EUR';
+    const basePrice = selectedPricingOption.final_price;
+    const discountPercent = eligibleFirstPurchase ? FIRST_PURCHASE_DISCOUNT : 0;
+    const finalPrice = Number((basePrice * (1 - discountPercent)).toFixed(2));
+    const discountAmount = Number((basePrice - finalPrice).toFixed(2));
+    return {
+      currency,
+      basePrice,
+      finalPrice,
+      discountAmount,
+      discountPercent,
+      periodDays: selectedPricingOption.period_days,
+    };
+  }, [selectedPricingOption, eligibleFirstPurchase]);
+
+  const handlePeriodChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedPeriod(Number(event.target.value));
+  };
+
   const handleSelectPlan = async () => {
     if (!plan) return;
     setSelecting(true);
@@ -130,6 +217,11 @@ export const PlanDetailPage = () => {
     } finally {
       setSelecting(false);
     }
+  };
+
+  const handleCheckout = () => {
+    if (!plan || !selectedPricingOption) return;
+    navigate(`/plans/${plan.id}/checkout?period=${selectedPricingOption.period_days}`);
   };
 
   if (isLoading) {
@@ -187,14 +279,74 @@ export const PlanDetailPage = () => {
               <span>riebalų</span>
             </li>
           </ul>
-          <button
-            type="button"
-            className="primary-button"
-            onClick={handleSelectPlan}
-            disabled={isSelecting || isCurrent}
-          >
-            {isCurrent ? 'Šis planas jau pasirinktas' : isSelecting ? 'Priskiriama...' : 'Priskirti šį planą'}
-          </button>
+          {sortedPricingOptions.length > 0 && (
+            <div className="plan-pricing" style={periodCardStyle}>
+              <label className="form-label" htmlFor="plan-period-select">
+                Pasirinkite plano periodą
+              </label>
+              <select
+                id="plan-period-select"
+                value={selectedPeriod ?? ''}
+                onChange={handlePeriodChange}
+                className="input-select"
+                style={{ fontWeight: 600, fontSize: '1rem', padding: '10px 14px', borderRadius: 12 }}
+              >
+                {sortedPricingOptions.map((option) => (
+                  <option key={option.period_days} value={option.period_days}>
+                    {formatPeriodLabel(option.period_days)}
+                  </option>
+                ))}
+              </select>
+              {priceBreakdown && (
+                <div className="plan-pricing__totals" style={priceEmphasisStyle}>
+                  {priceBreakdown.discountAmount > 0 ? (
+                    <>
+                      <span style={{ fontSize: '0.95rem', textDecoration: 'line-through', opacity: 0.6 }}>
+                        {formatCurrency(priceBreakdown.basePrice, priceBreakdown.currency)}
+                      </span>
+                      <span style={priceAmountStyle}>
+                        {formatCurrency(priceBreakdown.finalPrice, priceBreakdown.currency)}
+                      </span>
+                      <small>
+                        Nuolaida: −{formatCurrency(priceBreakdown.discountAmount, priceBreakdown.currency)} ({Math.round(priceBreakdown.discountPercent * 100)}%)
+                      </small>
+                    </>
+                  ) : (
+                    <span style={priceAmountStyle}>
+                      {formatCurrency(priceBreakdown.finalPrice, priceBreakdown.currency)}
+                    </span>
+                  )}
+                  <span>Galutinė suma už {formatPeriodLabel(priceBreakdown.periodDays)}</span>
+                  {pricePerDay && (
+                    <span style={pricePerDayStyle}>
+                      ~ {formatCurrency(pricePerDay, priceBreakdown.currency)} už dieną
+                    </span>
+                  )}
+                  {eligibleFirstPurchase && priceBreakdown.discountAmount > 0 && (
+                    <small>-15% pirmo pirkimo nuolaida pritaikyta automatiškai.</small>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleSelectPlan}
+              disabled={isSelecting || isCurrent}
+            >
+              {isCurrent ? 'Šis planas jau pasirinktas' : isSelecting ? 'Priskiriama...' : 'Priskirti šį planą'}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleCheckout}
+              disabled={!selectedPricingOption}
+            >
+              Įsigyti planą
+            </button>
+          </div>
           {plan.is_custom && (
             <small style={{ display: 'block', marginTop: 12 }}>
               Šis planas sukurtas pagal jūsų individualius patiekalus. Naują variantą galite sudaryti bet kada.

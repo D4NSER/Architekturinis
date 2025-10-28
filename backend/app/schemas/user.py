@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Literal, Optional
+from datetime import datetime, date
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -28,6 +28,7 @@ class UserBase(BaseModel):
     )
     dietary_preferences: Optional[str] = Field(default=None, description="Pageidaujami mitybos tipai ar apribojimai.")
     allergies: Optional[str] = Field(default=None, description="Alergijos ar produktai, kurių reikėtų vengti.")
+    birth_date: Optional[date] = Field(default=None, description="Naudotojo gimimo data.")
 
 
 class UserCreate(UserBase):
@@ -56,6 +57,7 @@ class UserUpdate(BaseModel):
     activity_level: Optional[ActivityLevelLiteral] = None
     dietary_preferences: Optional[str] = None
     allergies: Optional[str] = None
+    birth_date: Optional[date] = None
 
 
 class UserRead(UserBase):
@@ -69,5 +71,63 @@ class UserRead(UserBase):
         from_attributes = True
 
 
+class PlanProgress(BaseModel):
+    plan_id: int
+    plan_name: str
+    started_at: datetime
+    expected_finish_at: datetime
+    total_days: int
+    completed_days: int
+    remaining_days: int
+    percent: float = Field(default=0.0, ge=0.0, le=1.0)
+    is_expired: bool
+
+    class Config:
+        from_attributes = True
+
+
+class PlanProgressSurveyRead(BaseModel):
+    id: int
+    plan_id: int
+    plan_name_snapshot: str
+    survey_type: Literal["progress", "final"]
+    day_offset: int
+    scheduled_at: datetime
+    status: Literal["scheduled", "completed", "cancelled"]
+    completed_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    response_submitted: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+class SurveyAnswerSummary(BaseModel):
+    question_id: str
+    prompt: str
+    answer: Union[int, float, str, list[str]]
+
+
+class PlanProgressSurveyHistory(BaseModel):
+    id: int
+    response_id: Optional[int] = None
+    plan_id: int
+    plan_name_snapshot: str
+    survey_type: Literal["progress", "final"]
+    day_offset: int
+    scheduled_at: datetime
+    completed_at: Optional[datetime] = None
+    submitted_at: Optional[datetime] = None
+    answers: list[SurveyAnswerSummary] = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True
+
+
 class UserProfile(UserRead):
     current_plan: Optional[NutritionPlanSummary] = None
+    purchase_count: int
+    eligible_first_purchase_discount: bool
+    plan_progress: Optional[PlanProgress] = None
+    plan_surveys: list[PlanProgressSurveyRead] = Field(default_factory=list)
+    plan_completed_surveys: list[PlanProgressSurveyHistory] = Field(default_factory=list)

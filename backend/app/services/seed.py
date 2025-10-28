@@ -1,18 +1,58 @@
-from sqlalchemy.orm import Session
+from decimal import Decimal, ROUND_HALF_UP
+
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.nutrition_plan import NutritionPlan
 from app.models.plan_meal import PlanMeal
+from app.models.plan_period_pricing import PlanPeriodPricing
+
+
+ALLOWED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 14]
+DEFAULT_DAILY_PRICE_BY_GOAL = {
+    "weight_loss": 18.9,
+    "muscle_gain": 23.9,
+    "balanced": 20.5,
+    "vegetarian": 19.2,
+    "performance": 22.8,
+}
+
+
+def build_pricing_options(
+    daily_rate: float, weekly_discount: float = 0.05, biweekly_discount: float = 0.1
+) -> list[dict[str, int | str]]:
+    """Generate pricing options in cents for supported periods."""
+    daily = Decimal(str(daily_rate))
+    weekly_multiplier = Decimal("1") - Decimal(str(weekly_discount))
+    biweekly_multiplier = Decimal("1") - Decimal(str(biweekly_discount))
+    pricing: list[dict[str, int | str]] = []
+
+    for period in ALLOWED_PERIODS:
+        multiplier = Decimal(period)
+        price = daily * multiplier
+        if period == 14:
+            price *= biweekly_multiplier
+        elif period >= 7:
+            price *= weekly_multiplier
+
+        price_cents = int((price * Decimal(100)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        pricing.append(
+            {
+                "period_days": period,
+                "price_cents": price_cents,
+                "currency": "EUR",
+            }
+        )
+    return pricing
 
 
 def seed_initial_plans(db: Session) -> None:
-    if db.query(NutritionPlan).count() > 0:
-        return
 
     plans_data = [
         {
             "name": "FitBite Slim planas",
             "description": "7 dienų svorio mažinimo planas – daug daržovių, lengvi baltymų šaltiniai, subalansuotos porcijos ir aiškus grafikas visai savaitei.",
             "goal_type": "weight_loss",
+            "daily_price": 18.9,
             "calories": 1650,
             "protein_grams": 120,
             "carbs_grams": 155,
@@ -84,6 +124,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Maxi planas",
             "description": "Didelio kaloringumo planas orientuotas į raumenų auginimą ir energiją intensyvioms treniruotėms.",
             "goal_type": "muscle_gain",
+            "daily_price": 23.9,
             "calories": 2850,
             "protein_grams": 200,
             "carbs_grams": 280,
@@ -145,6 +186,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Smart planas",
             "description": "Subalansuotas kasdienės mitybos planas su lengvu kalorijų deficitu – idealus norintiems palaikyti sveiką mitybą.",
             "goal_type": "balanced",
+            "daily_price": 20.5,
             "calories": 2000,
             "protein_grams": 150,
             "carbs_grams": 200,
@@ -196,6 +238,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Vegetarų planas",
             "description": "Subalansuotas vegetariškas meniu – optimalus baltymų ir skaidulų balansas be mėsos produktų.",
             "goal_type": "vegetarian",
+            "daily_price": 19.2,
             "calories": 1900,
             "protein_grams": 110,
             "carbs_grams": 220,
@@ -247,6 +290,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Office planas",
             "description": "Greitai paimami patiekalai biurui – aiškiai pažymėtos porcijos ir sustyguotas grafikas užimtiems profesionalams.",
             "goal_type": "balanced",
+            "daily_price": 18.4,
             "calories": 1850,
             "protein_grams": 130,
             "carbs_grams": 210,
@@ -298,6 +342,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Boost planas",
             "description": "Energingas planas sukurtas didesniam krūviui, HIIT treniruotėms ir ilgoms darbo dienoms – maksimali energija visai dienai.",
             "goal_type": "performance",
+            "daily_price": 22.8,
             "calories": 2400,
             "protein_grams": 165,
             "carbs_grams": 250,
@@ -347,10 +392,44 @@ def seed_initial_plans(db: Session) -> None:
         },
     ]
 
-    plans = []
     for plan_data in plans_data:
-        plans.append(
-            NutritionPlan(
+        if "daily_price" in plan_data:
+            plan_data["pricing_options"] = build_pricing_options(plan_data["daily_price"])
+
+    duplicates_removed = False
+    for plan_data in plans_data:
+        duplicates = (
+            db.query(NutritionPlan)
+            .filter(
+                NutritionPlan.name == plan_data["name"],
+                NutritionPlan.owner_id.is_(None),
+            )
+            .order_by(NutritionPlan.id.asc())
+            .all()
+        )
+        for duplicate in duplicates[1:]:
+            db.delete(duplicate)
+            duplicates_removed = True
+    if duplicates_removed:
+        db.commit()
+        db.expire_all()
+
+    existing_plans = (
+        db.query(NutritionPlan)
+        .options(
+            selectinload(NutritionPlan.pricing_entries),
+            selectinload(NutritionPlan.meals),
+        )
+        .filter(NutritionPlan.owner_id.is_(None))
+        .all()
+    )
+    plans_by_name = {plan.name: plan for plan in existing_plans}
+
+    created_or_updated = False
+    for plan_data in plans_data:
+        plan = plans_by_name.get(plan_data["name"])
+        if not plan:
+            plan = NutritionPlan(
                 name=plan_data["name"],
                 description=plan_data["description"],
                 goal_type=plan_data["goal_type"],
@@ -359,25 +438,106 @@ def seed_initial_plans(db: Session) -> None:
                 carbs_grams=plan_data.get("carbs_grams"),
                 fats_grams=plan_data.get("fats_grams"),
             )
+            db.add(plan)
+            db.flush()
+            plans_by_name[plan.name] = plan
+            created_or_updated = True
+
+            for meal in plan_data["meals"]:
+                db.add(
+                    PlanMeal(
+                        plan_id=plan.id,
+                        day_of_week=meal["day_of_week"].lower(),
+                        meal_type=meal["meal_type"],
+                        title=meal["title"],
+                        description=meal.get("description"),
+                        calories=meal.get("calories"),
+                        protein_grams=meal.get("protein_grams"),
+                        carbs_grams=meal.get("carbs_grams"),
+                        fats_grams=meal.get("fats_grams"),
+                    )
+                )
+        else:
+            original_fields = (
+                plan.description,
+                plan.goal_type,
+                plan.calories,
+                plan.protein_grams,
+                plan.carbs_grams,
+                plan.fats_grams,
+            )
+            updated_fields = (
+                plan_data["description"],
+                plan_data["goal_type"],
+                plan_data.get("calories"),
+                plan_data.get("protein_grams"),
+                plan_data.get("carbs_grams"),
+                plan_data.get("fats_grams"),
+            )
+            if original_fields != updated_fields:
+                (
+                    plan.description,
+                    plan.goal_type,
+                    plan.calories,
+                    plan.protein_grams,
+                    plan.carbs_grams,
+                    plan.fats_grams,
+                ) = updated_fields
+                created_or_updated = True
+
+            if not plan.meals:
+                for meal in plan_data["meals"]:
+                    db.add(
+                        PlanMeal(
+                            plan_id=plan.id,
+                            day_of_week=meal["day_of_week"].lower(),
+                            meal_type=meal["meal_type"],
+                            title=meal["title"],
+                            description=meal.get("description"),
+                            calories=meal.get("calories"),
+                            protein_grams=meal.get("protein_grams"),
+                            carbs_grams=meal.get("carbs_grams"),
+                            fats_grams=meal.get("fats_grams"),
+                        )
+                    )
+                created_or_updated = True
+
+    if created_or_updated:
+        db.commit()
+        db.expire_all()
+        existing_plans = (
+            db.query(NutritionPlan)
+            .options(selectinload(NutritionPlan.pricing_entries))
+            .filter(NutritionPlan.owner_id.is_(None))
+            .all()
         )
 
-    db.add_all(plans)
-    db.flush()
+    daily_price_by_name = {
+        plan_data["name"]: plan_data["daily_price"]
+        for plan_data in plans_data
+        if plan_data.get("daily_price") is not None
+    }
 
-    for plan, plan_data in zip(plans, plans_data):
-        for meal in plan_data["meals"]:
+    existing_plans = (
+        db.query(NutritionPlan)
+        .options(selectinload(NutritionPlan.pricing_entries))
+        .all()
+    )
+
+    created_pricing = False
+    for plan in existing_plans:
+        if plan.pricing_entries:
+            continue
+        daily_price = daily_price_by_name.get(plan.name) or DEFAULT_DAILY_PRICE_BY_GOAL.get(plan.goal_type) or 20.0
+        for option in build_pricing_options(daily_price):
             db.add(
-                PlanMeal(
+                PlanPeriodPricing(
                     plan_id=plan.id,
-                    day_of_week=meal["day_of_week"].lower(),
-                    meal_type=meal["meal_type"],
-                    title=meal["title"],
-                    description=meal.get("description"),
-                    calories=meal.get("calories"),
-                    protein_grams=meal.get("protein_grams"),
-                    carbs_grams=meal.get("carbs_grams"),
-                    fats_grams=meal.get("fats_grams"),
+                    period_days=int(option["period_days"]),
+                    price_cents=int(option["price_cents"]),
+                    currency=str(option.get("currency", "EUR")),
                 )
             )
-
-    db.commit()
+            created_pricing = True
+    if created_pricing:
+        db.commit()

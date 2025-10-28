@@ -29,6 +29,17 @@ class PlanMealRead(PlanMealBase):
         from_attributes = True
 
 
+class PlanPricingOption(BaseModel):
+    period_days: int = Field(gt=0)
+    base_price: float = Field(ge=0)
+    final_price: float = Field(ge=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
+    discounts_applied: List[dict[str, str | float]] = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True
+
+
 class NutritionPlanBase(BaseModel):
     name: str
     description: str
@@ -52,6 +63,7 @@ class CustomPlanCreate(BaseModel):
 class NutritionPlanSummary(NutritionPlanBase):
     id: int
     is_custom: bool
+    pricing_options: List[PlanPricingOption] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

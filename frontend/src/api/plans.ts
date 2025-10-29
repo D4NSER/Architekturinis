@@ -42,3 +42,43 @@ export const fetchPlanDetail = async (planId: number): Promise<NutritionPlanDeta
   const { data } = await apiClient.get<NutritionPlanDetail>(`/plans/${planId}`);
   return data;
 };
+
+export interface PlanCheckoutPayload {
+  period_days: number;
+  payment_method: 'card' | 'bank_transfer' | 'cash';
+  buyer_full_name: string;
+  buyer_email: string;
+  buyer_phone?: string;
+  discount_code?: string;
+  card_number?: string;
+  card_exp_month?: string;
+  card_exp_year?: string;
+  card_cvc?: string;
+  invoice_needed?: boolean;
+  company_name?: string;
+  company_code?: string;
+  vat_code?: string;
+  extra_notes?: string;
+}
+
+export interface PlanCheckoutResponse {
+  purchase_id: number;
+  plan_id: number;
+  status: string;
+  base_price: number;
+  total_price: number;
+  discount_amount: number;
+  discount_label?: string | null;
+  discount_code?: string | null;
+  discount_percent?: number | null;
+  currency: string;
+  download_url?: string | null;
+}
+
+export const checkoutPlan = async (
+  planId: number,
+  payload: PlanCheckoutPayload,
+): Promise<PlanCheckoutResponse> => {
+  const { data } = await apiClient.post<PlanCheckoutResponse>(`/plans/${planId}/checkout`, payload);
+  return data;
+};

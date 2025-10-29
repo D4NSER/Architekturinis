@@ -10,6 +10,7 @@ export interface UpdateProfilePayload {
   activity_level?: string;
   dietary_preferences?: string;
   allergies?: string;
+  birth_date?: string;
 }
 
 export const fetchCurrentUser = async (): Promise<UserProfile> => {

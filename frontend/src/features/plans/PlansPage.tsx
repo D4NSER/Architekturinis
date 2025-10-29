@@ -24,6 +24,35 @@ const goalLabelMap: Record<string, string> = {
 
 const renderGoalLabel = (goalType: string) => goalLabelMap[goalType] ?? goalType;
 
+const formatCurrency = (value: number, currency = 'EUR') =>
+  new Intl.NumberFormat('lt-LT', { style: 'currency', currency }).format(value);
+
+const getPrimaryPricing = (plan: NutritionPlanSummary | null | undefined) => {
+  if (!plan?.pricing_options?.length) return null;
+  return plan.pricing_options.slice().sort((a, b) => a.period_days - b.period_days)[0];
+};
+
+const formatPeriodLabel = (periodDays: number) => `${periodDays} d.`;
+
+const FIRST_PURCHASE_DISCOUNT = 0.15;
+
+const priceHighlightStyle = {
+  marginTop: 12,
+  display: 'inline-flex',
+  alignItems: 'baseline',
+  gap: '0.35rem',
+  padding: '0.35rem 0.75rem',
+  borderRadius: '999px',
+  background: 'rgba(99, 102, 241, 0.12)',
+  color: '#3730a3',
+  fontWeight: 600,
+};
+
+const pricePeriodStyle = {
+  fontSize: '0.85rem',
+  opacity: 0.8,
+};
+
 const individualPlans: ExtendedPlan[] = [
   {
     id: 9001,
@@ -37,6 +66,7 @@ const individualPlans: ExtendedPlan[] = [
     is_custom: true,
     isIndividual: true,
     calorieRange: [1500, 1800],
+    pricing_options: [],
   },
   {
     id: 9002,
@@ -50,6 +80,7 @@ const individualPlans: ExtendedPlan[] = [
     is_custom: true,
     isIndividual: true,
     calorieRange: [1800, 2200],
+    pricing_options: [],
   },
   {
     id: 9003,
@@ -63,6 +94,7 @@ const individualPlans: ExtendedPlan[] = [
     is_custom: true,
     isIndividual: true,
     calorieRange: [2200, 2600],
+    pricing_options: [],
   },
 ];
 
@@ -129,6 +161,46 @@ export const PlansPage = () => {
     );
   }, [recommendedPlan]);
 
+  const eligibleFirstPurchase = Boolean(user?.eligible_first_purchase_discount);
+
+  const getDiscountedPrice = (price: number) => Number((price * (1 - FIRST_PURCHASE_DISCOUNT)).toFixed(2));
+
+  const recommendedPrimaryPricing = useMemo(
+    () => getPrimaryPricing(recommendedPlan),
+    [recommendedPlan],
+  );
+
+  const currentPrimaryPricing = useMemo(
+    () => getPrimaryPricing(currentPlan ?? null),
+    [currentPlan],
+  );
+
+  const renderPriceBlock = (pricing: NutritionPlanSummary['pricing_options'][number] | null | undefined) => {
+    if (!pricing) return null;
+    const base = pricing.final_price;
+    const currency = pricing.currency ?? 'EUR';
+
+    if (eligibleFirstPurchase && !pricing.discounts_applied.length) {
+      const discounted = getDiscountedPrice(base);
+      return (
+        <div className="plan-card__price plan-card__price--highlight" style={priceHighlightStyle}>
+          <span style={{ textDecoration: 'line-through', opacity: 0.6 }}>
+            {formatCurrency(base, currency)}
+          </span>
+          <span>{formatCurrency(discounted, currency)}</span>
+          <span style={pricePeriodStyle}>/ {formatPeriodLabel(pricing.period_days)}</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="plan-card__price plan-card__price--highlight" style={priceHighlightStyle}>
+        <span>{formatCurrency(base, currency)}</span>
+        <span style={pricePeriodStyle}>/ {formatPeriodLabel(pricing.period_days)}</span>
+      </div>
+    );
+  };
+
   const handleSelectPlan = async (planId: number) => {
     try {
       setError(null);
@@ -148,6 +220,11 @@ export const PlansPage = () => {
     } else {
       navigate(`/plans/${planId}`);
     }
+  };
+
+  const handleCheckoutPlan = (planId: number, periodDays?: number) => {
+    const params = periodDays ? `?period=${periodDays}` : '';
+    navigate(`/plans/${planId}/checkout${params}`);
   };
 
   if (isLoading) {
@@ -194,7 +271,19 @@ export const PlansPage = () => {
               <button type="button" className="primary-button" onClick={() => handleViewPlan(currentPlan.id)}>
                 Tvarkyti planą
               </button>
+              {!currentPlan.isIndividual && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() =>
+                    handleCheckoutPlan(currentPlan.id, currentPrimaryPricing?.period_days)
+                  }
+                >
+                  Pirkti dar kartą
+                </button>
+              )}
             </div>
+            {renderPriceBlock(currentPrimaryPricing)}
           </article>
         </section>
       )}
@@ -211,10 +300,20 @@ export const PlansPage = () => {
                 {recommendedPlan.recommendation_reason && (
                   <div className="plan-reason">{recommendedPlan.recommendation_reason}</div>
                 )}
+                {renderPriceBlock(recommendedPrimaryPricing)}
               </div>
               <div className="plan-card__header-actions">
                 <button type="button" className="secondary-button" onClick={() => handleViewPlan(recommendedPlan.id)}>
                   Peržiūrėti detales
+                </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() =>
+                    handleCheckoutPlan(recommendedPlan.id, recommendedPrimaryPricing?.period_days)
+                  }
+                >
+                  Įsigyti planą
                 </button>
                 <button
                   type="button"
@@ -244,6 +343,7 @@ export const PlansPage = () => {
             const isCurrent = plan.id === currentPlanId;
             const isRecommended = plan.id === recommendedPlan?.id;
             const isIndividual = Boolean(plan.isIndividual);
+            const primaryPricing = getPrimaryPricing(plan);
             return (
               <article
                 key={plan.id}
@@ -265,6 +365,7 @@ export const PlansPage = () => {
                     {plan.fats_grams ?? 0}g riebalų
                   </p>
                 )}
+                {renderPriceBlock(primaryPricing)}
                 <div className="plan-card__actions">
                   <button
                     type="button"
@@ -273,9 +374,22 @@ export const PlansPage = () => {
                   >
                     {isIndividual ? 'Sudaryti individualų planą' : isCurrent ? 'Peržiūrėti' : 'Pasirinkti'}
                   </button>
+                  {!isIndividual && (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => handleCheckoutPlan(plan.id, primaryPricing?.period_days)}
+                    >
+                      Įsigyti planą
+                    </button>
+                  )}
                   {!isIndividual && !isCurrent && (
-                    <button type="button" className="secondary-button" onClick={() => handleSelectPlan(plan.id)}>
-                      Greitas pasirinkimas
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => handleSelectPlan(plan.id)}
+                    >
+                      Priskirti planą
                     </button>
                   )}
                 </div>

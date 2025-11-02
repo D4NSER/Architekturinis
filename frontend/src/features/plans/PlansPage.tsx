@@ -8,6 +8,7 @@ import {
 } from '../../api/plans';
 import type { NutritionPlanSummary, RecommendedPlanDetail } from '../../types';
 import { useAuth } from '../auth/AuthContext';
+import { AllergenBadgeList } from '../../components/AllergenBadgeList';
 
 interface ExtendedPlan extends NutritionPlanSummary {
   isIndividual?: boolean;
@@ -66,6 +67,7 @@ const individualPlans: ExtendedPlan[] = [
     is_custom: true,
     isIndividual: true,
     calorieRange: [1500, 1800],
+    allergens: [],
     pricing_options: [],
   },
   {
@@ -80,6 +82,7 @@ const individualPlans: ExtendedPlan[] = [
     is_custom: true,
     isIndividual: true,
     calorieRange: [1800, 2200],
+    allergens: [],
     pricing_options: [],
   },
   {
@@ -94,6 +97,7 @@ const individualPlans: ExtendedPlan[] = [
     is_custom: true,
     isIndividual: true,
     calorieRange: [2200, 2600],
+    allergens: [],
     pricing_options: [],
   },
 ];
@@ -107,6 +111,7 @@ export const PlansPage = () => {
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const userAllergySet = useMemo(() => new Set(user?.allergies ?? []), [user?.allergies]);
 
   useEffect(() => {
     const load = async () => {
@@ -200,6 +205,36 @@ export const PlansPage = () => {
       </div>
     );
   };
+  const renderPlanAllergens = (plan: NutritionPlanSummary) => {
+    const overlapping = plan.allergens.filter((id) => userAllergySet.has(id));
+    const hasOverlap = overlapping.length > 0;
+    return (
+      <div style={{ marginTop: 12 }}>
+        <span
+          style={{
+            display: 'block',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            color: hasOverlap ? '#b91c1c' : '#374151',
+          }}
+        >
+          Alergenai:
+        </span>
+        <AllergenBadgeList
+          allergens={plan.allergens}
+          highlight={(id) => userAllergySet.has(id)}
+          emptyLabel="Nepažymėta alergenų"
+          size="compact"
+          style={{ marginTop: 6 }}
+        />
+        {hasOverlap && (
+          <div style={{ marginTop: 6, color: '#b91c1c', fontSize: '0.85rem' }}>
+            Šis planas turi ingredientų, kuriems esate alergiški.
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const handleSelectPlan = async (planId: number) => {
     try {
@@ -267,6 +302,7 @@ export const PlansPage = () => {
                 {currentPlan.carbs_grams ?? 0}g angliavandenių · {currentPlan.fats_grams ?? 0}g riebalų
               </p>
             )}
+            {renderPlanAllergens(currentPlan)}
             <div className="plan-card__actions">
               <button type="button" className="primary-button" onClick={() => handleViewPlan(currentPlan.id)}>
                 Tvarkyti planą
@@ -301,6 +337,7 @@ export const PlansPage = () => {
                   <div className="plan-reason">{recommendedPlan.recommendation_reason}</div>
                 )}
                 {renderPriceBlock(recommendedPrimaryPricing)}
+                {renderPlanAllergens(recommendedPlan)}
               </div>
               <div className="plan-card__header-actions">
                 <button type="button" className="secondary-button" onClick={() => handleViewPlan(recommendedPlan.id)}>
@@ -365,6 +402,7 @@ export const PlansPage = () => {
                     {plan.fats_grams ?? 0}g riebalų
                   </p>
                 )}
+                {renderPlanAllergens(plan)}
                 {renderPriceBlock(primaryPricing)}
                 <div className="plan-card__actions">
                   <button

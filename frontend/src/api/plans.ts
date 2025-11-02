@@ -1,5 +1,10 @@
 import { apiClient } from './client';
-import type { NutritionPlanDetail, NutritionPlanSummary, RecommendedPlanDetail } from '../types';
+import type {
+  AllergenId,
+  NutritionPlanDetail,
+  NutritionPlanSummary,
+  RecommendedPlanDetail,
+} from '../types';
 
 export interface CustomPlanMealInput {
   day_of_week: string;
@@ -10,6 +15,7 @@ export interface CustomPlanMealInput {
   protein_grams?: number;
   carbs_grams?: number;
   fats_grams?: number;
+  allergens?: AllergenId[];
 }
 
 export interface CustomPlanPayload {

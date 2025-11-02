@@ -19,6 +19,7 @@ class NutritionPlan(Base):
     protein_grams: Mapped[int | None] = mapped_column(Integer, nullable=True)
     carbs_grams: Mapped[int | None] = mapped_column(Integer, nullable=True)
     fats_grams: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    allergens: Mapped[str | None] = mapped_column(String(255))
 
     is_custom: Mapped[bool] = mapped_column(Boolean, default=False)
     owner_id: Mapped[str | None] = mapped_column(ForeignKey("user.id"), nullable=True)

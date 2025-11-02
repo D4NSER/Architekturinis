@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import authenticate_user
+from app.core.allergens import serialize_allergens
 from app.core.config import settings
 from app.core.security import create_access_token, get_password_hash
 from app.db.session import get_db
@@ -35,7 +36,7 @@ def register_user(user_in: UserCreate, db: Session = Depends(get_db)) -> User:
         weight_kg=user_in.weight_kg,
         activity_level=user_in.activity_level,
         dietary_preferences=user_in.dietary_preferences,
-        allergies=user_in.allergies,
+        allergies=serialize_allergens(user_in.allergies),
         birth_date=user_in.birth_date,
     )
     db.add(user)

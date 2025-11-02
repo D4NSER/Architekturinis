@@ -37,6 +37,9 @@ backend/media/purchases/
 backend/media/purchases/**
 backend/media/*.pdf
 
+# Scripts (generated helpers)
+backend/scripts/
+
 # Generated receipts / PDFs
 **/purchases/*.pdf
 **/downloads/*.pdf

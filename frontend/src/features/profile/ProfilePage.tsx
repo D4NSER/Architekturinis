@@ -6,11 +6,14 @@ import { updateProfile, uploadAvatar } from '../../api/users';
 import { cancelPurchase, downloadPurchaseReceipt, fetchPurchases } from '../../api/purchases';
 import { useAuth } from '../auth/AuthContext';
 import type {
+  AllergenId,
   PurchaseSummary,
   PlanProgressSurvey as PlanProgressSurveyType,
   PlanSurveyHistoryEntry,
   SurveyAnswerSummary,
 } from '../../types';
+import { AllergenBadgeList } from '../../components/AllergenBadgeList';
+import { ALLERGEN_OPTIONS } from '../../constants/allergens';
 
 const MONTH_OPTIONS = [
   { value: '01', label: 'Sausis' },
@@ -37,7 +40,7 @@ export const ProfilePage = () => {
   const [weightKg, setWeightKg] = useState(user?.weight_kg ? String(user.weight_kg) : '');
   const [activityLevel, setActivityLevel] = useState(user?.activity_level ?? 'moderate');
   const [dietaryPreferences, setDietaryPreferences] = useState(user?.dietary_preferences ?? '');
-  const [allergies, setAllergies] = useState(user?.allergies ?? '');
+  const [allergies, setAllergies] = useState<AllergenId[]>(user?.allergies ?? []);
   const [birthYear, setBirthYear] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthDay, setBirthDay] = useState('');
@@ -50,6 +53,11 @@ export const ProfilePage = () => {
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
+
+  const handleAllergyChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const values = Array.from(event.target.selectedOptions, (option) => option.value as AllergenId);
+    setAllergies(values);
+  };
 
   const yearOptions = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -249,7 +257,7 @@ export const ProfilePage = () => {
       setWeightKg(user.weight_kg ? String(user.weight_kg) : '');
       setActivityLevel(user.activity_level ?? 'moderate');
       setDietaryPreferences(user.dietary_preferences ?? '');
-      setAllergies(user.allergies ?? '');
+      setAllergies(user.allergies ?? []);
       const [year = '', month = '', day = ''] = (user.birth_date ?? '').split('-');
       setBirthYear(year);
       setBirthMonth(month);
@@ -353,7 +361,7 @@ export const ProfilePage = () => {
         weight_kg: weightKg ? Number(weightKg) : undefined,
         activity_level: activityLevel,
         dietary_preferences: dietaryPreferences || undefined,
-        allergies: allergies || undefined,
+        allergies,
         birth_date:
           birthYear && birthMonth && birthDay ? `${birthYear}-${birthMonth}-${birthDay}` : undefined,
       });
@@ -579,13 +587,28 @@ export const ProfilePage = () => {
               value={dietaryPreferences}
               onChange={(event) => setDietaryPreferences(event.target.value)}
             />
-            <FormField
-              id="allergies"
-              label="Alergijos / produktai, kurių vengiate"
-              as="textarea"
-              value={allergies}
-              onChange={(event) => setAllergies(event.target.value)}
-            />
+            <div className="form-field">
+              <label htmlFor="allergies">Alergijos</label>
+              <select
+                id="allergies"
+                multiple
+                value={allergies}
+                onChange={handleAllergyChange}
+                style={{ minHeight: 140 }}
+              >
+                {ALLERGEN_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: '#6b7280', marginTop: 6, display: 'block' }}>
+                Pažymėkite visas alergijas. Laikykite nuspaudę „Ctrl“ (Windows) arba „⌘“ (Mac), kad pasirinktumėte kelias.
+              </small>
+              {allergies.length > 0 && (
+                <AllergenBadgeList allergens={allergies} size="compact" style={{ marginTop: 8 }} />
+              )}
+            </div>
             <button type="submit" className="primary-button" disabled={isSaving}>
               {isSaving ? 'Saugoma...' : 'Išsaugoti'}
             </button>

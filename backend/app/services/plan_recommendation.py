@@ -4,6 +4,7 @@ from typing import Iterable
 
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.allergens import deserialize_allergens, normalize_allergen_list, serialize_allergens
 from app.models.nutrition_plan import NutritionPlan
 from app.models.plan_meal import PlanMeal
 from app.models.user import User
@@ -121,12 +122,18 @@ def create_custom_plan(
             protein_grams=meal.protein_grams,
             carbs_grams=meal.carbs_grams,
             fats_grams=meal.fats_grams,
+            allergens=serialize_allergens(meal.allergens),
         )
         for meal in payload.meals
     )
 
     for meal in meals:
         db.add(meal)
+
+    combined_allergens = normalize_allergen_list(
+        allergen for meal in payload.meals for allergen in (meal.allergens or [])
+    )
+    plan.allergens = serialize_allergens(combined_allergens)
 
     db.commit()
     db.refresh(plan)
@@ -139,3 +146,10 @@ def attach_macro_totals(plan: NutritionPlan) -> None:
         plan.protein_grams = sum(meal.protein_grams or 0 for meal in plan.meals)
         plan.carbs_grams = sum(meal.carbs_grams or 0 for meal in plan.meals)
         plan.fats_grams = sum(meal.fats_grams or 0 for meal in plan.meals)
+        meal_allergens = {
+            allergen
+            for meal in plan.meals
+            for allergen in deserialize_allergens(meal.allergens)
+        }
+        if meal_allergens:
+            plan.allergens = serialize_allergens(meal_allergens)

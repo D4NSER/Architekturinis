@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { UserProfile } from '../types';
+import type { AllergenId, UserProfile } from '../types';
 
 export interface UpdateProfilePayload {
   first_name?: string;
@@ -9,7 +9,7 @@ export interface UpdateProfilePayload {
   weight_kg?: number;
   activity_level?: string;
   dietary_preferences?: string;
-  allergies?: string;
+  allergies?: AllergenId[];
   birth_date?: string;
 }
 

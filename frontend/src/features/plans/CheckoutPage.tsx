@@ -6,6 +6,7 @@ import { checkoutPlan, fetchPlanDetail } from '../../api/plans';
 import { fetchDiscountCodes, DiscountCode as ApiDiscountCode } from '../../api/discounts';
 import type { NutritionPlanDetail, PlanPricingOption } from '../../types';
 import { useAuth } from '../auth/AuthContext';
+import { AllergenBadgeList } from '../../components/AllergenBadgeList';
 
 const paymentMethods: Array<{ value: 'card' | 'bank_transfer' | 'cash'; label: string }> = [
   { value: 'card', label: 'Bankinė kortelė' },
@@ -64,6 +65,7 @@ const CheckoutPage = () => {
   const [cardExpMonth, setCardExpMonth] = useState('');
   const [cardExpYear, setCardExpYear] = useState('');
   const [cardCvc, setCardCvc] = useState('');
+  const userAllergySet = useMemo(() => new Set(user?.allergies ?? []), [user?.allergies]);
 
   const eligibleFirstPurchase = Boolean(user?.eligible_first_purchase_discount);
   const [discountCode, setDiscountCode] = useState('');
@@ -202,6 +204,11 @@ const CheckoutPage = () => {
       currency,
     };
   }, [activePricing, appliedDiscountPercent]);
+  const planAllergenOverlap = useMemo(
+    () => (plan ? plan.allergens.filter((id) => userAllergySet.has(id)) : []),
+    [plan, userAllergySet],
+  );
+  const hasPlanAllergenOverlap = planAllergenOverlap.length > 0;
 
   const totalAmount = pricingSummary ? formatCurrency(pricingSummary.finalPrice, pricingSummary.currency) : null;
 
@@ -347,6 +354,17 @@ const CheckoutPage = () => {
             <span className="plan-pill">{renderGoalLabel(plan.goal_type)}</span>
             <h3>{plan.name}</h3>
             <p>{plan.description}</p>
+            <AllergenBadgeList
+              allergens={plan.allergens}
+              highlight={(id) => userAllergySet.has(id)}
+              emptyLabel="Nepažymėta alergenų"
+              style={{ marginTop: 8 }}
+            />
+            {hasPlanAllergenOverlap && (
+              <p style={{ marginTop: 6, color: '#b91c1c', fontSize: '0.9rem' }}>
+                Dėmesio: planas apima pažymėtus alergenus. Įsitikinkite, kad pasirinktas planas jums tinkamas.
+              </p>
+            )}
             {activePricing && (
               <div style={{ marginTop: 12, fontWeight: 600 }}>
                 <span style={{ fontSize: '1.4rem' }}>{totalAmount}</span>

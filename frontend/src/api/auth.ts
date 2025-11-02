@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { LoginResponse, UserProfile } from '../types';
+import type { AllergenId, LoginResponse, UserProfile } from '../types';
 
 export interface RegisterPayload {
   email: string;
@@ -11,7 +11,7 @@ export interface RegisterPayload {
   weight_kg?: number;
   activity_level?: string;
   dietary_preferences?: string;
-  allergies?: string;
+  allergies?: AllergenId[];
 }
 
 export const registerUser = async (payload: RegisterPayload): Promise<UserProfile> => {

@@ -2,6 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.allergens import normalize_allergen_list, serialize_allergens
 from app.models.nutrition_plan import NutritionPlan
 from app.models.plan_meal import PlanMeal
 from app.models.plan_period_pricing import PlanPeriodPricing
@@ -15,6 +16,48 @@ DEFAULT_DAILY_PRICE_BY_GOAL = {
     "vegetarian": 19.2,
     "performance": 22.8,
 }
+WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+
+def ensure_full_week(meals: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Ensure every weekday has at least one meal by cycling existing templates."""
+    normalized: list[dict[str, object]] = []
+    meals_by_day: dict[str, list[dict[str, object]]] = {}
+
+    for meal in meals:
+        copy = dict(meal)
+        day = str(copy.get("day_of_week", "")).lower()
+        if day not in WEEK_DAYS:
+            continue
+        copy["day_of_week"] = day
+        normalized.append(copy)
+        meals_by_day.setdefault(day, []).append(copy)
+
+    if len(meals_by_day) >= len(WEEK_DAYS) or not meals_by_day:
+        return normalized
+
+    template_days = list(meals_by_day.keys())
+    template_index = 0
+
+    for day in WEEK_DAYS:
+        if day in meals_by_day:
+            continue
+        source_day = template_days[template_index % len(template_days)]
+        template_index += 1
+        clones: list[dict[str, object]] = []
+        for template in meals_by_day[source_day]:
+            clone = template.copy()
+            clone["day_of_week"] = day
+            title = clone.get("title")
+            if isinstance(title, str):
+                base_title = title.split(" (pakartojimas)")[0]
+                clone["title"] = f"{base_title} (pakartojimas)"
+            clones.append(clone)
+        normalized.extend(clones)
+        meals_by_day[day] = clones
+        template_days.append(day)
+
+    return normalized
 
 
 def build_pricing_options(
@@ -67,6 +110,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 18,
                     "carbs_grams": 38,
                     "fats_grams": 12,
+                    "allergens": ["milk", "tree_nut"],
                 },
                 {
                     "day_of_week": "monday",
@@ -77,6 +121,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 34,
                     "carbs_grams": 42,
                     "fats_grams": 13,
+                    "allergens": ["gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -87,6 +132,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 36,
                     "carbs_grams": 24,
                     "fats_grams": 18,
+                    "allergens": ["fish", "egg"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -97,6 +143,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 22,
                     "carbs_grams": 32,
                     "fats_grams": 8,
+                    "allergens": ["gluten", "soy"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -107,6 +154,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 33,
                     "carbs_grams": 28,
                     "fats_grams": 12,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -117,6 +165,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 5,
                     "carbs_grams": 12,
                     "fats_grams": 3,
+                    "allergens": ["tree_nut"],
                 },
             ],
         },
@@ -139,6 +188,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 48,
                     "carbs_grams": 52,
                     "fats_grams": 22,
+                    "allergens": ["egg", "milk", "gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -149,6 +199,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 55,
                     "carbs_grams": 46,
                     "fats_grams": 32,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "monday",
@@ -159,6 +210,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 44,
                     "carbs_grams": 42,
                     "fats_grams": 28,
+                    "allergens": ["fish"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -169,6 +221,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 32,
                     "carbs_grams": 38,
                     "fats_grams": 18,
+                    "allergens": ["peanut", "milk"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -179,6 +232,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 50,
                     "carbs_grams": 60,
                     "fats_grams": 20,
+                    "allergens": ["gluten"],
                 },
             ],
         },
@@ -201,6 +255,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 28,
                     "carbs_grams": 42,
                     "fats_grams": 12,
+                    "allergens": ["milk", "gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -211,6 +266,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 24,
                     "carbs_grams": 58,
                     "fats_grams": 16,
+                    "allergens": ["milk"],
                 },
                 {
                     "day_of_week": "monday",
@@ -221,6 +277,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 46,
                     "carbs_grams": 48,
                     "fats_grams": 18,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -231,6 +288,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 24,
                     "carbs_grams": 18,
                     "fats_grams": 6,
+                    "allergens": ["milk"],
                 },
             ],
         },
@@ -253,6 +311,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 24,
                     "carbs_grams": 30,
                     "fats_grams": 14,
+                    "allergens": ["soy", "gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -263,6 +322,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 28,
                     "carbs_grams": 62,
                     "fats_grams": 18,
+                    "allergens": ["soy", "sesame"],
                 },
                 {
                     "day_of_week": "monday",
@@ -273,6 +333,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 26,
                     "carbs_grams": 68,
                     "fats_grams": 16,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -283,6 +344,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 10,
                     "carbs_grams": 24,
                     "fats_grams": 9,
+                    "allergens": ["sesame"],
                 },
             ],
         },
@@ -305,6 +367,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 22,
                     "carbs_grams": 34,
                     "fats_grams": 10,
+                    "allergens": ["milk"],
                 },
                 {
                     "day_of_week": "monday",
@@ -315,6 +378,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 36,
                     "carbs_grams": 48,
                     "fats_grams": 14,
+                    "allergens": ["gluten", "milk"],
                 },
                 {
                     "day_of_week": "monday",
@@ -325,6 +389,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 18,
                     "carbs_grams": 20,
                     "fats_grams": 6,
+                    "allergens": ["peanut"],
                 },
                 {
                     "day_of_week": "monday",
@@ -335,6 +400,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 36,
                     "carbs_grams": 52,
                     "fats_grams": 12,
+                    "allergens": ["shellfish"],
                 },
             ],
         },
@@ -357,6 +423,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 34,
                     "carbs_grams": 48,
                     "fats_grams": 12,
+                    "allergens": ["gluten", "soy"],
                 },
                 {
                     "day_of_week": "monday",
@@ -367,6 +434,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 46,
                     "carbs_grams": 70,
                     "fats_grams": 18,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "monday",
@@ -377,6 +445,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 8,
                     "carbs_grams": 32,
                     "fats_grams": 8,
+                    "allergens": ["peanut"],
                 },
                 {
                     "day_of_week": "monday",
@@ -387,14 +456,11 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 42,
                     "carbs_grams": 46,
                     "fats_grams": 20,
+                    "allergens": ["soy"],
                 },
             ],
         },
     ]
-
-    for plan_data in plans_data:
-        if "daily_price" in plan_data:
-            plan_data["pricing_options"] = build_pricing_options(plan_data["daily_price"])
 
     duplicates_removed = False
     for plan_data in plans_data:
@@ -427,7 +493,18 @@ def seed_initial_plans(db: Session) -> None:
 
     created_or_updated = False
     for plan_data in plans_data:
+        meal_defs = ensure_full_week([dict(meal) for meal in plan_data["meals"]])
         plan = plans_by_name.get(plan_data["name"])
+        parsed_meals: list[tuple[dict[str, object], list[str]]] = []
+        union_allergens: set[str] = set()
+
+        for meal in meal_defs:
+            normalized_allergens = normalize_allergen_list(meal.get("allergens"))  # type: ignore[arg-type]
+            union_allergens.update(normalized_allergens)
+            parsed_meals.append((meal, normalized_allergens))
+
+        plan_allergens = serialize_allergens(union_allergens)
+
         if not plan:
             plan = NutritionPlan(
                 name=plan_data["name"],
@@ -437,24 +514,26 @@ def seed_initial_plans(db: Session) -> None:
                 protein_grams=plan_data.get("protein_grams"),
                 carbs_grams=plan_data.get("carbs_grams"),
                 fats_grams=plan_data.get("fats_grams"),
+                allergens=plan_allergens,
             )
             db.add(plan)
             db.flush()
             plans_by_name[plan.name] = plan
             created_or_updated = True
 
-            for meal in plan_data["meals"]:
+            for meal, normalized_allergens in parsed_meals:
                 db.add(
                     PlanMeal(
                         plan_id=plan.id,
-                        day_of_week=meal["day_of_week"].lower(),
-                        meal_type=meal["meal_type"],
-                        title=meal["title"],
-                        description=meal.get("description"),
-                        calories=meal.get("calories"),
-                        protein_grams=meal.get("protein_grams"),
-                        carbs_grams=meal.get("carbs_grams"),
-                        fats_grams=meal.get("fats_grams"),
+                        day_of_week=str(meal["day_of_week"]).lower(),
+                        meal_type=str(meal["meal_type"]),
+                        title=str(meal["title"]),
+                        description=meal.get("description"),  # type: ignore[arg-type]
+                        calories=meal.get("calories"),  # type: ignore[arg-type]
+                        protein_grams=meal.get("protein_grams"),  # type: ignore[arg-type]
+                        carbs_grams=meal.get("carbs_grams"),  # type: ignore[arg-type]
+                        fats_grams=meal.get("fats_grams"),  # type: ignore[arg-type]
+                        allergens=serialize_allergens(normalized_allergens),
                     )
                 )
         else:
@@ -485,22 +564,86 @@ def seed_initial_plans(db: Session) -> None:
                 ) = updated_fields
                 created_or_updated = True
 
+            if plan.allergens != plan_allergens:
+                plan.allergens = plan_allergens
+                created_or_updated = True
+
+            meals_by_key = {
+                (meal.day_of_week, meal.meal_type, meal.title): meal
+                for meal in plan.meals
+            }
+
             if not plan.meals:
-                for meal in plan_data["meals"]:
+                for meal, normalized_allergens in parsed_meals:
                     db.add(
                         PlanMeal(
                             plan_id=plan.id,
-                            day_of_week=meal["day_of_week"].lower(),
-                            meal_type=meal["meal_type"],
-                            title=meal["title"],
-                            description=meal.get("description"),
-                            calories=meal.get("calories"),
-                            protein_grams=meal.get("protein_grams"),
-                            carbs_grams=meal.get("carbs_grams"),
-                            fats_grams=meal.get("fats_grams"),
+                            day_of_week=str(meal["day_of_week"]).lower(),
+                            meal_type=str(meal["meal_type"]),
+                            title=str(meal["title"]),
+                            description=meal.get("description"),  # type: ignore[arg-type]
+                            calories=meal.get("calories"),  # type: ignore[arg-type]
+                            protein_grams=meal.get("protein_grams"),  # type: ignore[arg-type]
+                            carbs_grams=meal.get("carbs_grams"),  # type: ignore[arg-type]
+                            fats_grams=meal.get("fats_grams"),  # type: ignore[arg-type]
+                            allergens=serialize_allergens(normalized_allergens),
                         )
                     )
                 created_or_updated = True
+                continue
+
+            for meal, normalized_allergens in parsed_meals:
+                key = (
+                    str(meal["day_of_week"]).lower(),
+                    str(meal["meal_type"]),
+                    str(meal["title"]),
+                )
+                serialized_allergens = serialize_allergens(normalized_allergens)
+                existing_meal = meals_by_key.get(key)
+                if existing_meal:
+                    current_fields = (
+                        existing_meal.description,
+                        existing_meal.calories,
+                        existing_meal.protein_grams,
+                        existing_meal.carbs_grams,
+                        existing_meal.fats_grams,
+                        existing_meal.allergens,
+                    )
+                    updated_meal_fields = (
+                        meal.get("description"),  # type: ignore[arg-type]
+                        meal.get("calories"),  # type: ignore[arg-type]
+                        meal.get("protein_grams"),  # type: ignore[arg-type]
+                        meal.get("carbs_grams"),  # type: ignore[arg-type]
+                        meal.get("fats_grams"),  # type: ignore[arg-type]
+                        serialized_allergens,
+                    )
+                    if current_fields != updated_meal_fields:
+                        (
+                            existing_meal.description,
+                            existing_meal.calories,
+                            existing_meal.protein_grams,
+                            existing_meal.carbs_grams,
+                            existing_meal.fats_grams,
+                            existing_meal.allergens,
+                        ) = updated_meal_fields
+                        db.add(existing_meal)
+                        created_or_updated = True
+                else:
+                    db.add(
+                        PlanMeal(
+                            plan_id=plan.id,
+                            day_of_week=str(meal["day_of_week"]).lower(),
+                            meal_type=str(meal["meal_type"]),
+                            title=str(meal["title"]),
+                            description=meal.get("description"),  # type: ignore[arg-type]
+                            calories=meal.get("calories"),  # type: ignore[arg-type]
+                            protein_grams=meal.get("protein_grams"),  # type: ignore[arg-type]
+                            carbs_grams=meal.get("carbs_grams"),  # type: ignore[arg-type]
+                            fats_grams=meal.get("fats_grams"),  # type: ignore[arg-type]
+                            allergens=serialized_allergens,
+                        )
+                    )
+                    created_or_updated = True
 
     if created_or_updated:
         db.commit()

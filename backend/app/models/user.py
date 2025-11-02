@@ -64,3 +64,4 @@ class User(Base):
 from app.models.nutrition_plan import NutritionPlan  # noqa: E402  # late import to avoid circular refs
 from app.models.plan_progress_survey_response import PlanProgressSurveyResponse  # noqa: E402
 from app.models.plan_purchase import PlanPurchase  # noqa: E402
+from app.models.plan_progress_survey import PlanProgressSurvey  # noqa: E402

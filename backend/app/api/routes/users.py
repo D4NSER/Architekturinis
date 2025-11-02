@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
+from app.core.allergens import serialize_allergens
 from app.models.user import User
 from app.models.plan_purchase import PlanPurchase
 from app.models.plan_progress_survey import PlanProgressSurvey
@@ -63,7 +64,11 @@ def update_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> User:
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+    if "allergies" in update_data:
+        update_data["allergies"] = serialize_allergens(update_data["allergies"])
+
+    for field, value in update_data.items():
         setattr(current_user, field, value)
 
     db.add(current_user)

@@ -1,8 +1,11 @@
-import { FormEvent, useState } from 'react';
+import { ChangeEvent, FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { FormField } from '../../components/FormField';
 import { useAuth } from './AuthContext';
+import { AllergenBadgeList } from '../../components/AllergenBadgeList';
+import { ALLERGEN_OPTIONS } from '../../constants/allergens';
+import type { AllergenId } from '../../types';
 
 export const RegisterPage = () => {
   const { register, error } = useAuth();
@@ -17,8 +20,13 @@ export const RegisterPage = () => {
   const [weightKg, setWeightKg] = useState('');
   const [activityLevel, setActivityLevel] = useState('moderate');
   const [dietaryPreferences, setDietaryPreferences] = useState('');
-  const [allergies, setAllergies] = useState('');
+  const [allergies, setAllergies] = useState<AllergenId[]>([]);
   const [isSubmitting, setSubmitting] = useState(false);
+
+  const handleAllergyChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const values = Array.from(event.target.selectedOptions, (option) => option.value as AllergenId);
+    setAllergies(values);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -34,7 +42,7 @@ export const RegisterPage = () => {
         weight_kg: weightKg ? Number(weightKg) : undefined,
         activity_level: activityLevel,
         dietary_preferences: dietaryPreferences || undefined,
-        allergies: allergies || undefined,
+        allergies: allergies.length ? allergies : undefined,
       });
       navigate('/plans');
     } finally {
@@ -139,14 +147,28 @@ export const RegisterPage = () => {
           onChange={(event) => setDietaryPreferences(event.target.value)}
           placeholder="Pvz.: vegetariška, be laktozės, jūros gėrybės tik kartą per savaitę"
         />
-        <FormField
-          id="allergies"
-          label="Alergijos / produktai, kurių vengi"
-          as="textarea"
-          value={allergies}
-          onChange={(event) => setAllergies(event.target.value)}
-          placeholder="Pvz.: riešutai, glitimas"
-        />
+        <div className="form-field">
+          <label htmlFor="allergies">Alergijos</label>
+          <select
+            id="allergies"
+            multiple
+            value={allergies}
+            onChange={handleAllergyChange}
+            style={{ height: 140 }}
+          >
+            {ALLERGEN_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <small style={{ color: '#6b7280', marginTop: 6, display: 'block' }}>
+            Pasirinkite visas aktualias alergijas. Laikykite nuspaudę „Ctrl“ (Windows) arba „⌘“ (Mac), kad pasirinktumėte kelias pozicijas.
+          </small>
+          {allergies.length > 0 && (
+            <AllergenBadgeList allergens={allergies} size="compact" style={{ marginTop: 8 }} />
+          )}
+        </div>
         <button type="submit" className="primary-button" disabled={isSubmitting}>
           {isSubmitting ? 'Kuriama...' : 'Registruotis'}
         </button>

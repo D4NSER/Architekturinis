@@ -1,3 +1,18 @@
+export type AllergenId =
+  | 'gluten'
+  | 'milk'
+  | 'egg'
+  | 'peanut'
+  | 'tree_nut'
+  | 'soy'
+  | 'fish'
+  | 'shellfish'
+  | 'sesame'
+  | 'mustard'
+  | 'celery'
+  | 'sulfites'
+  | 'lupin';
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -8,7 +23,7 @@ export interface UserProfile {
   weight_kg?: number;
   activity_level?: string;
   dietary_preferences?: string;
-  allergies?: string;
+  allergies: AllergenId[];
   birth_date?: string | null;
   avatar_url?: string;
   current_plan_id?: number;
@@ -92,6 +107,7 @@ export interface NutritionPlanSummary {
   name: string;
   description: string;
   goal_type: string;
+  allergens: AllergenId[];
   calories?: number | null;
   protein_grams?: number | null;
   carbs_grams?: number | null;
@@ -110,6 +126,7 @@ export interface PlanMeal {
   protein_grams?: number | null;
   carbs_grams?: number | null;
   fats_grams?: number | null;
+  allergens: AllergenId[];
 }
 
 export interface NutritionPlanDetail extends NutritionPlanSummary {

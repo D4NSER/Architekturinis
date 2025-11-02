@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fetchPlanDetail, selectPlan } from '../../api/plans';
 import type { NutritionPlanDetail, PlanPricingOption } from '../../types';
 import { useAuth } from '../auth/AuthContext';
+import { AllergenBadgeList } from '../../components/AllergenBadgeList';
 
 const orderedDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -113,6 +114,7 @@ export const PlanDetailPage = () => {
   const [isLoading, setLoading] = useState(true);
   const [isSelecting, setSelecting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
+  const userAllergySet = useMemo(() => new Set(user?.allergies ?? []), [user?.allergies]);
 
   useEffect(() => {
     const load = async () => {
@@ -198,6 +200,11 @@ export const PlanDetailPage = () => {
       periodDays: selectedPricingOption.period_days,
     };
   }, [selectedPricingOption, eligibleFirstPurchase]);
+  const planAllergenOverlap = useMemo(
+    () => (plan ? plan.allergens.filter((id) => userAllergySet.has(id)) : []),
+    [plan, userAllergySet],
+  );
+  const hasPlanAllergenOverlap = planAllergenOverlap.length > 0;
 
   const handlePeriodChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedPeriod(Number(event.target.value));
@@ -257,6 +264,29 @@ export const PlanDetailPage = () => {
             <span className="plan-pill">{goalLabelMap[plan.goal_type] ?? plan.goal_type}</span>
             <span className="plan-pill">{uniqueDaysCount} dienos</span>
             <span className="plan-pill">{totalMeals} patiekalų</span>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <span
+              style={{
+                display: 'block',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                color: hasPlanAllergenOverlap ? '#b91c1c' : '#1f2937',
+              }}
+            >
+              Plano alergenai:
+            </span>
+            <AllergenBadgeList
+              allergens={plan.allergens}
+              highlight={(id) => userAllergySet.has(id)}
+              emptyLabel="Nepažymėta alergenų"
+              style={{ marginTop: 8 }}
+            />
+            {hasPlanAllergenOverlap && (
+              <p style={{ marginTop: 8, color: '#b91c1c' }}>
+                Įspėjimas: plane pažymėti produktai, kuriems esate alergiški. Pasitarkite su specialistu arba rinkitės kitą planą.
+              </p>
+            )}
           </div>
         </div>
         <aside className="plan-hero__macros">
@@ -387,20 +417,37 @@ export const PlanDetailPage = () => {
                 <span>{groupedMeals[day]!.length} patiekalai</span>
               </header>
               <div className="meals-grid">
-                {groupedMeals[day]!.map((meal) => (
-                  <div key={meal.id} className="meal-row">
-                    <div>
-                      <strong>{capitalize(meal.meal_type)}</strong>
-                      <div>{meal.title}</div>
-                      {meal.description && <small style={{ display: 'block', marginTop: 4 }}>{meal.description}</small>}
+                {groupedMeals[day]!.map((meal) => {
+                  const mealHasOverlap = meal.allergens.some((id) => userAllergySet.has(id));
+                  return (
+                    <div key={meal.id} className="meal-row">
+                      <div>
+                        <strong>{capitalize(meal.meal_type)}</strong>
+                        <div>{meal.title}</div>
+                        {meal.description && (
+                          <small style={{ display: 'block', marginTop: 4 }}>{meal.description}</small>
+                        )}
+                        <AllergenBadgeList
+                          allergens={meal.allergens}
+                          highlight={(id) => userAllergySet.has(id)}
+                          emptyLabel="Nepažymėta alergenų"
+                          size="compact"
+                          style={{ marginTop: 6 }}
+                        />
+                        {mealHasOverlap && (
+                          <small style={{ display: 'block', marginTop: 6, color: '#b91c1c' }}>
+                            Šiame patiekale yra ingredientų, kuriems esate alergiški.
+                          </small>
+                        )}
+                      </div>
+                      {meal.calories && (
+                        <span style={{ fontWeight: 600 }}>
+                          {meal.calories} kcal
+                        </span>
+                      )}
                     </div>
-                    {meal.calories && (
-                      <span style={{ fontWeight: 600 }}>
-                        {meal.calories} kcal
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

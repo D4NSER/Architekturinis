@@ -33,6 +33,16 @@ frontend/coverage/
 
 # Media uploads
 backend/media/profile_pictures/
+backend/media/purchases/
+backend/media/purchases/**
+backend/media/*.pdf
+
+# Scripts (generated helpers)
+backend/scripts/
+
+# Generated receipts / PDFs
+**/purchases/*.pdf
+**/downloads/*.pdf
 
 # OS / editor junk
 .DS_Store
@@ -41,3 +51,12 @@ Thumbs.db
 *.swo
 *.idea/
 .vscode/
+
+# Python packaging and caches
+.pytest_cache/
+pip-wheel-metadata/
+*.egg-info/
+.mypy_cache/
+
+# logs
+*.log

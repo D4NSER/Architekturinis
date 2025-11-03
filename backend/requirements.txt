@@ -1,11 +1,12 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.1
 SQLAlchemy==2.0.31
-psycopg[binary]==3.2.1
+psycopg[binary]==3.2.12
 python-multipart==0.0.9
 passlib[bcrypt]==1.7.4
-bcrypt==4.1.2
+bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 pydantic-settings==2.3.4
 email-validator==2.1.1
 alembic==1.13.3
+fpdf2==2.7.9

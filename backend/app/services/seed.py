@@ -1,18 +1,101 @@
-from sqlalchemy.orm import Session
+from decimal import Decimal, ROUND_HALF_UP
 
+from sqlalchemy.orm import Session, selectinload
+
+from app.core.allergens import normalize_allergen_list, serialize_allergens
 from app.models.nutrition_plan import NutritionPlan
 from app.models.plan_meal import PlanMeal
+from app.models.plan_period_pricing import PlanPeriodPricing
+
+
+ALLOWED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 14]
+DEFAULT_DAILY_PRICE_BY_GOAL = {
+    "weight_loss": 18.9,
+    "muscle_gain": 23.9,
+    "balanced": 20.5,
+    "vegetarian": 19.2,
+    "performance": 22.8,
+}
+WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+
+def ensure_full_week(meals: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Ensure every weekday has at least one meal by cycling existing templates."""
+    normalized: list[dict[str, object]] = []
+    meals_by_day: dict[str, list[dict[str, object]]] = {}
+
+    for meal in meals:
+        copy = dict(meal)
+        day = str(copy.get("day_of_week", "")).lower()
+        if day not in WEEK_DAYS:
+            continue
+        copy["day_of_week"] = day
+        normalized.append(copy)
+        meals_by_day.setdefault(day, []).append(copy)
+
+    if len(meals_by_day) >= len(WEEK_DAYS) or not meals_by_day:
+        return normalized
+
+    template_days = list(meals_by_day.keys())
+    template_index = 0
+
+    for day in WEEK_DAYS:
+        if day in meals_by_day:
+            continue
+        source_day = template_days[template_index % len(template_days)]
+        template_index += 1
+        clones: list[dict[str, object]] = []
+        for template in meals_by_day[source_day]:
+            clone = template.copy()
+            clone["day_of_week"] = day
+            title = clone.get("title")
+            if isinstance(title, str):
+                base_title = title.split(" (pakartojimas)")[0]
+                clone["title"] = f"{base_title} (pakartojimas)"
+            clones.append(clone)
+        normalized.extend(clones)
+        meals_by_day[day] = clones
+        template_days.append(day)
+
+    return normalized
+
+
+def build_pricing_options(
+    daily_rate: float, weekly_discount: float = 0.05, biweekly_discount: float = 0.1
+) -> list[dict[str, int | str]]:
+    """Generate pricing options in cents for supported periods."""
+    daily = Decimal(str(daily_rate))
+    weekly_multiplier = Decimal("1") - Decimal(str(weekly_discount))
+    biweekly_multiplier = Decimal("1") - Decimal(str(biweekly_discount))
+    pricing: list[dict[str, int | str]] = []
+
+    for period in ALLOWED_PERIODS:
+        multiplier = Decimal(period)
+        price = daily * multiplier
+        if period == 14:
+            price *= biweekly_multiplier
+        elif period >= 7:
+            price *= weekly_multiplier
+
+        price_cents = int((price * Decimal(100)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        pricing.append(
+            {
+                "period_days": period,
+                "price_cents": price_cents,
+                "currency": "EUR",
+            }
+        )
+    return pricing
 
 
 def seed_initial_plans(db: Session) -> None:
-    if db.query(NutritionPlan).count() > 0:
-        return
 
     plans_data = [
         {
             "name": "FitBite Slim planas",
             "description": "7 dienų svorio mažinimo planas – daug daržovių, lengvi baltymų šaltiniai, subalansuotos porcijos ir aiškus grafikas visai savaitei.",
             "goal_type": "weight_loss",
+            "daily_price": 18.9,
             "calories": 1650,
             "protein_grams": 120,
             "carbs_grams": 155,
@@ -27,6 +110,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 18,
                     "carbs_grams": 38,
                     "fats_grams": 12,
+                    "allergens": ["milk", "tree_nut"],
                 },
                 {
                     "day_of_week": "monday",
@@ -37,6 +121,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 34,
                     "carbs_grams": 42,
                     "fats_grams": 13,
+                    "allergens": ["gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -47,6 +132,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 36,
                     "carbs_grams": 24,
                     "fats_grams": 18,
+                    "allergens": ["fish", "egg"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -57,6 +143,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 22,
                     "carbs_grams": 32,
                     "fats_grams": 8,
+                    "allergens": ["gluten", "soy"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -67,6 +154,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 33,
                     "carbs_grams": 28,
                     "fats_grams": 12,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -77,6 +165,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 5,
                     "carbs_grams": 12,
                     "fats_grams": 3,
+                    "allergens": ["tree_nut"],
                 },
             ],
         },
@@ -84,6 +173,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Maxi planas",
             "description": "Didelio kaloringumo planas orientuotas į raumenų auginimą ir energiją intensyvioms treniruotėms.",
             "goal_type": "muscle_gain",
+            "daily_price": 23.9,
             "calories": 2850,
             "protein_grams": 200,
             "carbs_grams": 280,
@@ -98,6 +188,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 48,
                     "carbs_grams": 52,
                     "fats_grams": 22,
+                    "allergens": ["egg", "milk", "gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -108,6 +199,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 55,
                     "carbs_grams": 46,
                     "fats_grams": 32,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "monday",
@@ -118,6 +210,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 44,
                     "carbs_grams": 42,
                     "fats_grams": 28,
+                    "allergens": ["fish"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -128,6 +221,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 32,
                     "carbs_grams": 38,
                     "fats_grams": 18,
+                    "allergens": ["peanut", "milk"],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -138,6 +232,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 50,
                     "carbs_grams": 60,
                     "fats_grams": 20,
+                    "allergens": ["gluten"],
                 },
             ],
         },
@@ -145,6 +240,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Smart planas",
             "description": "Subalansuotas kasdienės mitybos planas su lengvu kalorijų deficitu – idealus norintiems palaikyti sveiką mitybą.",
             "goal_type": "balanced",
+            "daily_price": 20.5,
             "calories": 2000,
             "protein_grams": 150,
             "carbs_grams": 200,
@@ -159,6 +255,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 28,
                     "carbs_grams": 42,
                     "fats_grams": 12,
+                    "allergens": ["milk", "gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -169,6 +266,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 24,
                     "carbs_grams": 58,
                     "fats_grams": 16,
+                    "allergens": ["milk"],
                 },
                 {
                     "day_of_week": "monday",
@@ -179,6 +277,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 46,
                     "carbs_grams": 48,
                     "fats_grams": 18,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -189,6 +288,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 24,
                     "carbs_grams": 18,
                     "fats_grams": 6,
+                    "allergens": ["milk"],
                 },
             ],
         },
@@ -196,6 +296,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Vegetarų planas",
             "description": "Subalansuotas vegetariškas meniu – optimalus baltymų ir skaidulų balansas be mėsos produktų.",
             "goal_type": "vegetarian",
+            "daily_price": 19.2,
             "calories": 1900,
             "protein_grams": 110,
             "carbs_grams": 220,
@@ -210,6 +311,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 24,
                     "carbs_grams": 30,
                     "fats_grams": 14,
+                    "allergens": ["soy", "gluten"],
                 },
                 {
                     "day_of_week": "monday",
@@ -220,6 +322,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 28,
                     "carbs_grams": 62,
                     "fats_grams": 18,
+                    "allergens": ["soy", "sesame"],
                 },
                 {
                     "day_of_week": "monday",
@@ -230,6 +333,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 26,
                     "carbs_grams": 68,
                     "fats_grams": 16,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "tuesday",
@@ -240,6 +344,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 10,
                     "carbs_grams": 24,
                     "fats_grams": 9,
+                    "allergens": ["sesame"],
                 },
             ],
         },
@@ -247,6 +352,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Office planas",
             "description": "Greitai paimami patiekalai biurui – aiškiai pažymėtos porcijos ir sustyguotas grafikas užimtiems profesionalams.",
             "goal_type": "balanced",
+            "daily_price": 18.4,
             "calories": 1850,
             "protein_grams": 130,
             "carbs_grams": 210,
@@ -261,6 +367,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 22,
                     "carbs_grams": 34,
                     "fats_grams": 10,
+                    "allergens": ["milk"],
                 },
                 {
                     "day_of_week": "monday",
@@ -271,6 +378,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 36,
                     "carbs_grams": 48,
                     "fats_grams": 14,
+                    "allergens": ["gluten", "milk"],
                 },
                 {
                     "day_of_week": "monday",
@@ -281,6 +389,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 18,
                     "carbs_grams": 20,
                     "fats_grams": 6,
+                    "allergens": ["peanut"],
                 },
                 {
                     "day_of_week": "monday",
@@ -291,6 +400,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 36,
                     "carbs_grams": 52,
                     "fats_grams": 12,
+                    "allergens": ["shellfish"],
                 },
             ],
         },
@@ -298,6 +408,7 @@ def seed_initial_plans(db: Session) -> None:
             "name": "FitBite Boost planas",
             "description": "Energingas planas sukurtas didesniam krūviui, HIIT treniruotėms ir ilgoms darbo dienoms – maksimali energija visai dienai.",
             "goal_type": "performance",
+            "daily_price": 22.8,
             "calories": 2400,
             "protein_grams": 165,
             "carbs_grams": 250,
@@ -312,6 +423,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 34,
                     "carbs_grams": 48,
                     "fats_grams": 12,
+                    "allergens": ["gluten", "soy"],
                 },
                 {
                     "day_of_week": "monday",
@@ -322,6 +434,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 46,
                     "carbs_grams": 70,
                     "fats_grams": 18,
+                    "allergens": [],
                 },
                 {
                     "day_of_week": "monday",
@@ -332,6 +445,7 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 8,
                     "carbs_grams": 32,
                     "fats_grams": 8,
+                    "allergens": ["peanut"],
                 },
                 {
                     "day_of_week": "monday",
@@ -342,15 +456,57 @@ def seed_initial_plans(db: Session) -> None:
                     "protein_grams": 42,
                     "carbs_grams": 46,
                     "fats_grams": 20,
+                    "allergens": ["soy"],
                 },
             ],
         },
     ]
 
-    plans = []
+    duplicates_removed = False
     for plan_data in plans_data:
-        plans.append(
-            NutritionPlan(
+        duplicates = (
+            db.query(NutritionPlan)
+            .filter(
+                NutritionPlan.name == plan_data["name"],
+                NutritionPlan.owner_id.is_(None),
+            )
+            .order_by(NutritionPlan.id.asc())
+            .all()
+        )
+        for duplicate in duplicates[1:]:
+            db.delete(duplicate)
+            duplicates_removed = True
+    if duplicates_removed:
+        db.commit()
+        db.expire_all()
+
+    existing_plans = (
+        db.query(NutritionPlan)
+        .options(
+            selectinload(NutritionPlan.pricing_entries),
+            selectinload(NutritionPlan.meals),
+        )
+        .filter(NutritionPlan.owner_id.is_(None))
+        .all()
+    )
+    plans_by_name = {plan.name: plan for plan in existing_plans}
+
+    created_or_updated = False
+    for plan_data in plans_data:
+        meal_defs = ensure_full_week([dict(meal) for meal in plan_data["meals"]])
+        plan = plans_by_name.get(plan_data["name"])
+        parsed_meals: list[tuple[dict[str, object], list[str]]] = []
+        union_allergens: set[str] = set()
+
+        for meal in meal_defs:
+            normalized_allergens = normalize_allergen_list(meal.get("allergens"))  # type: ignore[arg-type]
+            union_allergens.update(normalized_allergens)
+            parsed_meals.append((meal, normalized_allergens))
+
+        plan_allergens = serialize_allergens(union_allergens)
+
+        if not plan:
+            plan = NutritionPlan(
                 name=plan_data["name"],
                 description=plan_data["description"],
                 goal_type=plan_data["goal_type"],
@@ -358,26 +514,167 @@ def seed_initial_plans(db: Session) -> None:
                 protein_grams=plan_data.get("protein_grams"),
                 carbs_grams=plan_data.get("carbs_grams"),
                 fats_grams=plan_data.get("fats_grams"),
+                allergens=plan_allergens,
             )
-        )
+            db.add(plan)
+            db.flush()
+            plans_by_name[plan.name] = plan
+            created_or_updated = True
 
-    db.add_all(plans)
-    db.flush()
+            for meal, normalized_allergens in parsed_meals:
+                db.add(
+                    PlanMeal(
+                        plan_id=plan.id,
+                        day_of_week=str(meal["day_of_week"]).lower(),
+                        meal_type=str(meal["meal_type"]),
+                        title=str(meal["title"]),
+                        description=meal.get("description"),  # type: ignore[arg-type]
+                        calories=meal.get("calories"),  # type: ignore[arg-type]
+                        protein_grams=meal.get("protein_grams"),  # type: ignore[arg-type]
+                        carbs_grams=meal.get("carbs_grams"),  # type: ignore[arg-type]
+                        fats_grams=meal.get("fats_grams"),  # type: ignore[arg-type]
+                        allergens=serialize_allergens(normalized_allergens),
+                    )
+                )
+        else:
+            original_fields = (
+                plan.description,
+                plan.goal_type,
+                plan.calories,
+                plan.protein_grams,
+                plan.carbs_grams,
+                plan.fats_grams,
+            )
+            updated_fields = (
+                plan_data["description"],
+                plan_data["goal_type"],
+                plan_data.get("calories"),
+                plan_data.get("protein_grams"),
+                plan_data.get("carbs_grams"),
+                plan_data.get("fats_grams"),
+            )
+            if original_fields != updated_fields:
+                (
+                    plan.description,
+                    plan.goal_type,
+                    plan.calories,
+                    plan.protein_grams,
+                    plan.carbs_grams,
+                    plan.fats_grams,
+                ) = updated_fields
+                created_or_updated = True
 
-    for plan, plan_data in zip(plans, plans_data):
-        for meal in plan_data["meals"]:
+            if plan.allergens != plan_allergens:
+                plan.allergens = plan_allergens
+                created_or_updated = True
+
+            meals_by_key = {
+                (meal.day_of_week, meal.meal_type, meal.title): meal
+                for meal in plan.meals
+            }
+
+            if not plan.meals:
+                for meal, normalized_allergens in parsed_meals:
+                    db.add(
+                        PlanMeal(
+                            plan_id=plan.id,
+                            day_of_week=str(meal["day_of_week"]).lower(),
+                            meal_type=str(meal["meal_type"]),
+                            title=str(meal["title"]),
+                            description=meal.get("description"),  # type: ignore[arg-type]
+                            calories=meal.get("calories"),  # type: ignore[arg-type]
+                            protein_grams=meal.get("protein_grams"),  # type: ignore[arg-type]
+                            carbs_grams=meal.get("carbs_grams"),  # type: ignore[arg-type]
+                            fats_grams=meal.get("fats_grams"),  # type: ignore[arg-type]
+                            allergens=serialize_allergens(normalized_allergens),
+                        )
+                    )
+                created_or_updated = True
+                continue
+
+            for meal, normalized_allergens in parsed_meals:
+                key = (
+                    str(meal["day_of_week"]).lower(),
+                    str(meal["meal_type"]),
+                    str(meal["title"]),
+                )
+                serialized_allergens = serialize_allergens(normalized_allergens)
+                existing_meal = meals_by_key.get(key)
+                if existing_meal:
+                    current_fields = (
+                        existing_meal.description,
+                        existing_meal.calories,
+                        existing_meal.protein_grams,
+                        existing_meal.carbs_grams,
+                        existing_meal.fats_grams,
+                        existing_meal.allergens,
+                    )
+                    updated_meal_fields = (
+                        meal.get("description"),  # type: ignore[arg-type]
+                        meal.get("calories"),  # type: ignore[arg-type]
+                        meal.get("protein_grams"),  # type: ignore[arg-type]
+                        meal.get("carbs_grams"),  # type: ignore[arg-type]
+                        meal.get("fats_grams"),  # type: ignore[arg-type]
+                        serialized_allergens,
+                    )
+                    if current_fields != updated_meal_fields:
+                        (
+                            existing_meal.description,
+                            existing_meal.calories,
+                            existing_meal.protein_grams,
+                            existing_meal.carbs_grams,
+                            existing_meal.fats_grams,
+                            existing_meal.allergens,
+                        ) = updated_meal_fields
+                        db.add(existing_meal)
+                        created_or_updated = True
+                else:
+                    db.add(
+                        PlanMeal(
+                            plan_id=plan.id,
+                            day_of_week=str(meal["day_of_week"]).lower(),
+                            meal_type=str(meal["meal_type"]),
+                            title=str(meal["title"]),
+                            description=meal.get("description"),  # type: ignore[arg-type]
+                            calories=meal.get("calories"),  # type: ignore[arg-type]
+                            protein_grams=meal.get("protein_grams"),  # type: ignore[arg-type]
+                            carbs_grams=meal.get("carbs_grams"),  # type: ignore[arg-type]
+                            fats_grams=meal.get("fats_grams"),  # type: ignore[arg-type]
+                            allergens=serialized_allergens,
+                        )
+                    )
+                    created_or_updated = True
+
+    if created_or_updated:
+        db.commit()
+        db.expire_all()
+
+    daily_price_by_name = {
+        plan_data["name"]: plan_data["daily_price"]
+        for plan_data in plans_data
+        if plan_data.get("daily_price") is not None
+    }
+
+    existing_plans = (
+        db.query(NutritionPlan)
+        .options(selectinload(NutritionPlan.pricing_entries))
+        .all()
+    )
+
+    created_pricing = False
+    for plan in existing_plans:
+        if plan.pricing_entries:
+            continue
+        daily_price = daily_price_by_name.get(plan.name) or DEFAULT_DAILY_PRICE_BY_GOAL.get(plan.goal_type) or 20.0
+        for option in build_pricing_options(daily_price):
             db.add(
-                PlanMeal(
+                PlanPeriodPricing(
                     plan_id=plan.id,
-                    day_of_week=meal["day_of_week"].lower(),
-                    meal_type=meal["meal_type"],
-                    title=meal["title"],
-                    description=meal.get("description"),
-                    calories=meal.get("calories"),
-                    protein_grams=meal.get("protein_grams"),
-                    carbs_grams=meal.get("carbs_grams"),
-                    fats_grams=meal.get("fats_grams"),
+                    period_days=int(option["period_days"]),
+                    price_cents=int(option["price_cents"]),
+                    currency=str(option.get("currency", "EUR")),
                 )
             )
-
-    db.commit()
+            created_pricing = True
+    if created_pricing:
+        db.commit()

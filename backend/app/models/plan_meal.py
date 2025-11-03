@@ -17,6 +17,7 @@ class PlanMeal(Base):
     protein_grams: Mapped[int | None] = mapped_column(Integer)
     carbs_grams: Mapped[int | None] = mapped_column(Integer)
     fats_grams: Mapped[int | None] = mapped_column(Integer)
+    allergens: Mapped[str | None] = mapped_column(String(255))
 
     plan: Mapped["NutritionPlan"] = relationship("NutritionPlan", back_populates="meals")
 

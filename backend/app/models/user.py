@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, date
 import uuid
 
-from sqlalchemy import DateTime, Float, ForeignKey, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -26,6 +26,7 @@ class User(Base):
     activity_level: Mapped[str | None] = mapped_column(String(50))
     dietary_preferences: Mapped[str | None] = mapped_column(String(255))
     allergies: Mapped[str | None] = mapped_column(String(255))
+    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     current_plan_id: Mapped[int | None] = mapped_column(ForeignKey("nutritionplan.id"))
 
@@ -43,6 +44,24 @@ class User(Base):
         cascade="all, delete-orphan",
         foreign_keys="NutritionPlan.owner_id",
     )
+    purchases: Mapped[list["PlanPurchase"]] = relationship(
+        "PlanPurchase",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    surveys: Mapped[list["PlanProgressSurvey"]] = relationship(
+        "PlanProgressSurvey",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    survey_responses: Mapped[list["PlanProgressSurveyResponse"]] = relationship(
+        "PlanProgressSurveyResponse",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
 from app.models.nutrition_plan import NutritionPlan  # noqa: E402  # late import to avoid circular refs
+from app.models.plan_progress_survey_response import PlanProgressSurveyResponse  # noqa: E402
+from app.models.plan_purchase import PlanPurchase  # noqa: E402
+from app.models.plan_progress_survey import PlanProgressSurvey  # noqa: E402

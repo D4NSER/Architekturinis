@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, plans, users
+from app.api.routes import auth, discounts, plans, purchases, surveys, users
 from app.core.config import settings
 from app.db import base  # noqa: F401 - ensures models are imported
 from app.db.base_class import Base
@@ -22,6 +22,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
 app.include_router(users.router, prefix=settings.api_v1_prefix)
 app.include_router(plans.router, prefix=settings.api_v1_prefix)
+app.include_router(purchases.router, prefix=settings.api_v1_prefix)
+app.include_router(surveys.router, prefix=settings.api_v1_prefix)
+app.include_router(discounts.router, prefix=settings.api_v1_prefix)
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 

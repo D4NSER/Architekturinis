@@ -7,7 +7,10 @@ import RegisterPage from './features/auth/RegisterPage';
 import ProfilePage from './features/profile/ProfilePage';
 import PlansPage from './features/plans/PlansPage';
 import PlanDetailPage from './features/plans/PlanDetailPage';
+import CheckoutPage from './features/plans/CheckoutPage';
+import CheckoutSuccessPage from './features/plans/CheckoutSuccessPage';
 import IndividualPlanPage from './features/plans/IndividualPlanPage';
+import SurveyPage from './features/surveys/SurveyPage';
 import AppLayout from './layouts/AppLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import './App.css';
@@ -45,7 +48,10 @@ export const App = () => (
           <Route path="/plans" element={<PlansPage />} />
           <Route path="/plans/individual/:planId" element={<IndividualPlanPage />} />
           <Route path="/plans/:planId" element={<PlanDetailPage />} />
+          <Route path="/plans/:planId/checkout" element={<CheckoutPage />} />
+          <Route path="/checkout/success/:purchaseId" element={<CheckoutSuccessPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/surveys/:surveyId" element={<SurveyPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/plans" replace />} />

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models.nutrition_plan import NutritionPlan

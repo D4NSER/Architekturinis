@@ -171,3 +171,27 @@ Failas pateks į `backend/media/profile_pictures/` ir bus pasiekiamas per `http:
 5. Išsamus GDPR auditas (duomenų eksportas, ištrynimas, logai).
 
 Šis README pakeičia seną Express/Cra boilerplate aprašą ir pateikia realias darbo instrukcijas visai komandai.
+
+---
+
+# FitBite – Iteracija 2
+
+Antroji iteracija sutelkta į maisto alergijų palaikymą ir individualaus plano kūrimo patirtį. Pagrindinės naujovės:
+
+- **Alergenų sistema:**
+  - Įdiegti `allergens` laukeliai naudotojams, planams ir atskiriems patiekalams (SQLAlchemy modeliai bei Pydantic schemos).
+  - Specialus pagalbininkas `backend/core/allergens.py` normalizuoja alergenų sąrašus ir pasirūpina nuosekliais `slug` formatais.
+  - Sėklos (`seed_initial_plans`) papildytos visu savaitės meniu kiekvienam planui: jei kažkuriai dienai trūksta patiekalų, generatorius automatiškai sukuria pakartojimus su aiškiai pažymėtu „(pakartojimas)“.
+
+- **Back-end API atnaujinimai:**
+  - Registracijos ir profilio atnaujinimo maršrutai serializuoja alergijas kaip tvarkytus sąrašus.
+  - Individualaus plano kūrimo logika (`create_custom_plan`) perduoda alergenus į bazę, o planų rekomendacijos, detalių peržiūros bei PDF generavimas gali lengvai pasinaudoti šia informacija.
+
+- **Front-end patobulinimai:**
+  - Registracijos ir profilio formos leidžia pasirinkti kelias alergijas iš iš anksto paruošto sąrašo; visur rodoma ženkliukų (badge) vizualizacija.
+  - Planų sąrašas, rekomenduojamas planas, detalus puslapis ir atsiskaitymo ekranas pabrėžia alergijas bei įspėja, jei jos sutampa su naudotojo alergijomis.
+  - Individualaus plano kūrimo puslapis perkurta – patiekalai pasirenkami iš pasirinktų presetų (tik pusryčiai, pietūs, vakarienė), makroelementai ir alergenai užpildomi automatiškai, o dienų pasirinkimas vyksta vienu paspaudimu.
+  - Įdiegti papildomi iš anksto paruošti patiekalai kiekvienai valgio kategorijai, kad planą būtų lengviau sudaryti.
+
+- **Kiti pakeitimai:**
+  - `.gitignore` papildytas `backend/scripts/`, kad lokaliai generuojami pagalbiniai skriptai nepatektų į repo.

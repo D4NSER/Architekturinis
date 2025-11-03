@@ -155,16 +155,12 @@ export const ProfilePage = () => {
     }
   };
 
-  const surveyTitle = (survey: PlanProgressSurveyType) => {
-    if (survey.survey_type === 'final') {
-      return 'Galutinė apklausa';
-    }
-    return `Progreso apklausa (po ${survey.day_offset} dienų)`;
-  };
-
   const handleSurveyClick = (survey: PlanProgressSurveyType) => {
-    // Open the survey in read-only viewer from profile
-    navigate(`/surveys/${survey.id}?view=readonly`, { state: { readOnlyFromProfile: true } });
+    if (survey.response_submitted || survey.status === 'completed') {
+      navigate(`/surveys/${survey.id}?view=readonly`, { state: { readOnlyFromProfile: true } });
+      return;
+    }
+    navigate(`/surveys/${survey.id}`);
   };
 
   const renderSurveyList = () => {
@@ -194,16 +190,6 @@ export const ProfilePage = () => {
       return 'Galutinė apklausa';
     }
     return `Progreso apklausa (po ${survey.day_offset} dienų)`;
-  };
-
-  const formatHistoryAnswer = (answer: SurveyAnswerSummary['answer']) => {
-    if (Array.isArray(answer)) {
-      return answer.length ? answer.join(', ') : '—';
-    }
-    if (answer === null || answer === undefined || `${answer}`.trim() === '') {
-      return '—';
-    }
-    return typeof answer === 'number' ? answer.toString() : answer;
   };
 
   const renderCompletedSurveyList = () => {
@@ -270,7 +256,7 @@ export const ProfilePage = () => {
     setPurchaseError(null);
     try {
       const data = await fetchPurchases();
-      const visible = data.filter((purchase) => purchase.status !== 'canceled');
+      const visible = data.filter((purchase) => purchase.status !== 'cancelled');
       setPurchases(visible);
     } catch (err) {
       setPurchaseError('Nepavyko įkelti pirkimų istorijos.');
@@ -580,13 +566,6 @@ export const ProfilePage = () => {
                 </button>
               )}
             </div>
-            <FormField
-              id="dietary_preferences"
-              label="Pageidaujami mitybos tipai"
-              as="textarea"
-              value={dietaryPreferences}
-              onChange={(event) => setDietaryPreferences(event.target.value)}
-            />
             <div className="form-field">
               <label htmlFor="allergies">Alergijos</label>
               <select

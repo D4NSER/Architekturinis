@@ -34,7 +34,8 @@ def schedule_surveys_for_purchase(db: Session, purchase: PlanPurchase) -> None:
         scheduled_at = start_at + timedelta(days=offset)
         survey_type = "final" if offset == purchase.period_days else "progress"
         effective_scheduled_at = scheduled_at.replace(tzinfo=None) if scheduled_at.tzinfo else scheduled_at
-        status = SCHEDULED_STATUS if effective_scheduled_at <= now else CANCELLED_STATUS
+        is_in_future = effective_scheduled_at > now
+        status = SCHEDULED_STATUS if is_in_future else CANCELLED_STATUS
         survey = PlanProgressSurvey(
             user_id=purchase.user_id,
             plan_purchase_id=purchase.id,
@@ -44,7 +45,7 @@ def schedule_surveys_for_purchase(db: Session, purchase: PlanPurchase) -> None:
             day_offset=offset,
             scheduled_at=scheduled_at,
             status=status,
-            cancelled_at=None if status == SCHEDULED_STATUS else None,
+            cancelled_at=None if is_in_future else now,
         )
         db.add(survey)
 

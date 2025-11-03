@@ -12,7 +12,6 @@ from app.models.plan_progress_survey_response import PlanProgressSurveyResponse
 from app.models.user import User
 from app.schemas.survey import SurveyDetail, SurveyQuestion, SurveySubmitRequest, SurveySubmitResponse
 from app.services.surveys import (
-    CANCELLED_STATUS,
     SCHEDULED_STATUS,
     activate_final_survey,
     get_questions_for_type,

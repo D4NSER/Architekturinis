@@ -648,12 +648,6 @@ def seed_initial_plans(db: Session) -> None:
     if created_or_updated:
         db.commit()
         db.expire_all()
-        existing_plans = (
-            db.query(NutritionPlan)
-            .options(selectinload(NutritionPlan.pricing_entries))
-            .filter(NutritionPlan.owner_id.is_(None))
-            .all()
-        )
 
     daily_price_by_name = {
         plan_data["name"]: plan_data["daily_price"]

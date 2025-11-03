@@ -4,7 +4,6 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable
-import unicodedata
 
 from fpdf import FPDF  # type: ignore[import-untyped]
 
@@ -24,13 +23,6 @@ DAY_LABELS = {
 }
 
 
-def _sanitize_text(value: str | None) -> str:
-    if not value:
-        return ""
-    normalized = unicodedata.normalize("NFKD", value)
-    return normalized.encode("ascii", "ignore").decode("ascii")
-
-
 class PlanPDF(FPDF):
     def header(self) -> None:  # pragma: no cover - presentation logic
         self.set_y(15)
@@ -46,17 +38,17 @@ def _section_title(pdf: FPDF, title: str) -> None:
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(55, 65, 81)
     pdf.set_fill_color(233, 238, 255)
-    pdf.cell(0, 8, _sanitize_text(title.upper()), ln=True, fill=True)
+    pdf.cell(0, 8, title.upper(), ln=True, fill=True)
     pdf.ln(2)
 
 
 def _key_value(pdf: FPDF, label: str, value: str, label_width: float = 45.0) -> None:
     pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(71, 85, 105)
-    pdf.cell(label_width, 6, _sanitize_text(label))
+    pdf.cell(label_width, 6, label)
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(17, 24, 39)
-    pdf.cell(0, 6, _sanitize_text(value), ln=True)
+    pdf.cell(0, 6, value, ln=True)
 
 
 def _draw_divider(pdf: FPDF) -> None:
@@ -67,7 +59,7 @@ def _draw_divider(pdf: FPDF) -> None:
 
 
 def _wrap_text(pdf: FPDF, text: str, width: float) -> None:
-    pdf.multi_cell(width, 5, txt=_sanitize_text(text), align="L")
+    pdf.multi_cell(width, 5, txt=text, align="L")
 
 
 def render_purchase_pdf(
@@ -86,14 +78,14 @@ def render_purchase_pdf(
     # Branding & intro
     pdf.set_font("Helvetica", "B", 18)
     pdf.set_text_color(37, 99, 235)
-    pdf.cell(0, 10, _sanitize_text("FitBite"), ln=True)
+    pdf.cell(0, 10, "FitBite", ln=True)
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(107, 114, 128)
-    pdf.cell(0, 5, _sanitize_text("Subalansuoti mitybos planai kasdien"), ln=True)
+    pdf.cell(0, 5, "Subalansuoti mitybos planai kasdien", ln=True)
     pdf.cell(
         0,
         5,
-        _sanitize_text("www.fitbite.lt · info@fitbite.lt · +370 600 00000"),
+        "www.fitbite.lt · info@fitbite.lt · +370 600 00000",
         ln=True,
     )
     _draw_divider(pdf)
@@ -157,9 +149,7 @@ def render_purchase_pdf(
     pdf.cell(
         0,
         9,
-        _sanitize_text(
-            f"Galutinė suma: {purchase.total_price:.2f} {purchase.currency}"
-        ),
+        f"Galutinė suma: {purchase.total_price:.2f} {purchase.currency}",
         ln=True,
         fill=True,
         align="C",
@@ -189,9 +179,7 @@ def render_purchase_pdf(
         pdf.set_font("Helvetica", "B", 11)
         pdf.set_fill_color(234, 234, 255)
         pdf.set_text_color(55, 48, 163)
-        pdf.cell(
-            0, 7, _sanitize_text(DAY_LABELS.get(day, day.title())), ln=True, fill=True
-        )
+        pdf.cell(0, 7, DAY_LABELS.get(day, day.title()), ln=True, fill=True)
         pdf.set_text_color(17, 24, 39)
         pdf.ln(1)
 
@@ -200,7 +188,7 @@ def render_purchase_pdf(
             pdf.cell(
                 0,
                 5,
-                _sanitize_text(f"{item.meal_type.title()}: {item.meal_title}"),
+                f"{item.meal_type.title()}: {item.meal_title}",
                 ln=True,
             )
             if item.meal_description:
@@ -218,7 +206,7 @@ def render_purchase_pdf(
             if macro_chunks:
                 pdf.set_font("Helvetica", "I", 9)
                 pdf.set_text_color(107, 114, 128)
-                pdf.cell(0, 5, _sanitize_text(" · ".join(macro_chunks)), ln=True)
+                pdf.cell(0, 5, " · ".join(macro_chunks), ln=True)
                 pdf.set_text_color(17, 24, 39)
             pdf.ln(1)
         pdf.ln(2)
@@ -228,9 +216,7 @@ def render_purchase_pdf(
     pdf.multi_cell(
         0,
         5,
-        txt=_sanitize_text(
-            "Sis dokumentas yra automatiskai sugeneruotas pirkimo patvirtinimas. Jei turite klausimu ar norite plano korekciju, rasykite info@fitbite.lt"
-        ),
+        txt="Sis dokumentas yra automatiskai sugeneruotas pirkimo patvirtinimas. Jei turite klausimu ar norite plano korekciju, rasykite info@fitbite.lt",
     )
 
     pdf.output(str(output_path))

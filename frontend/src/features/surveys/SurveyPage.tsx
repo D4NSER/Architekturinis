@@ -13,7 +13,8 @@ const SurveyPage = () => {
   const [survey, setSurvey] = useState<SurveyDetail | null>(null);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
   const [isSubmitted, setSubmitted] = useState(false);
   const location = useLocation();
@@ -25,14 +26,15 @@ const SurveyPage = () => {
   useEffect(() => {
     const load = async () => {
       if (!surveyId || Number.isNaN(numericSurveyId)) {
-        setError('Nerastas apklausos identifikatorius.');
+        setLoadError('Nerastas apklausos identifikatorius.');
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        setError(null);
+        setLoadError(null);
+        setSubmitError(null);
         const detail = await fetchSurvey(numericSurveyId);
         setSurvey(detail);
         const initial: Record<string, unknown> = {};
@@ -48,7 +50,7 @@ const SurveyPage = () => {
         });
         setAnswers(initial);
       } catch (err) {
-        setError('Nepavyko įkelti apklausos. Pabandykite dar kartą.');
+        setLoadError('Nepavyko įkelti apklausos. Pabandykite dar kartą.');
       } finally {
         setLoading(false);
       }
@@ -151,12 +153,12 @@ const SurveyPage = () => {
 
     try {
       setSubmitting(true);
-      setError(null);
+      setSubmitError(null);
       await submitSurvey(Number(surveyId), { answers: prepared });
       setSubmitted(true);
       await fetchSurvey(Number(surveyId)).then(setSurvey).catch(() => undefined);
     } catch (err) {
-      setError('Nepavyko išsaugoti atsakymų. Bandykite dar kartą.');
+      setSubmitError('Nepavyko išsaugoti atsakymų. Bandykite dar kartą.');
     } finally {
       setSubmitting(false);
     }
@@ -166,11 +168,11 @@ const SurveyPage = () => {
     return <div className="page-loading">Krauname apklausą...</div>;
   }
 
-  if (error) {
+  if (loadError) {
     return (
       <div className="page-card" style={{ maxWidth: 560, margin: '0 auto', display: 'grid', gap: 16 }}>
         <h2>Klaida</h2>
-        <p>{error}</p>
+        <p>{loadError}</p>
         <button type="button" className="primary-button" onClick={() => navigate('/profile')}>
           Grįžti į profilį
         </button>
@@ -322,7 +324,7 @@ const SurveyPage = () => {
             </div>
           ))}
 
-          {error && <div className="error-banner">{error}</div>}
+          {submitError && <div className="error-banner">{submitError}</div>}
 
           {!readOnly && (
             <button type="submit" className="primary-button" disabled={isSubmitting || !validateBeforeSubmit()}>
